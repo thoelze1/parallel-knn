@@ -45,17 +45,8 @@ queries, k, queriesd = readFile(sys.argv[2])
 assert ptsd == queriesd
 knns = knn(pts, queries, k)
 
-print("Points:")
-for pt in pts:
-    print('\t'+str(pt))
-
-print("Queries:")
-for q in queries:
-    print('\t'+str(q))
-
 print("k-NNs:")
 for knn in knns:
     print('\tk-NN of query '+str(knn[0]))
     for n in knn[1]:
         print('\t\t'+str(n))
-

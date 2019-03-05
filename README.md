@@ -125,7 +125,7 @@ main
 - We stop when each leaf refers to a hypercube containing at most c points
 - Sort is nlog(n)
 - Training runtime: nlog(n) + 2*(n/2)log(n/2) + 4*(n/4)log(n/4) + ... + (n/c)*c*log(c)
-- This is nlog(n)log(n) (I think, because there are log(n/c) terms above)
+- This is nlog(n)log(n) (there are log(n/c) terms above - see [this post](https://stackoverflow.com/questions/44231116/is-complexity-ologn-logn-2-logn-4-logn-8-log2-olog))
 ```
 points = []
 readPoints(points)

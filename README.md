@@ -1,151 +1,114 @@
 # Parallel k-NN
 
+## To Do
+1. Implement brute force solution
+2. Implement k-d tree - when queried, double cell size (go to parent) until you're sure you have the knn
+3. Implement k-d tree with adjacent cells linked
+
+## Parameters to tune
+- Number of points per leaf cell (per hypercube)
+- Number of points to sample for median
+- Number of threads per core
+- Number of children per node in k-d tree (ternary tree? quaternary?)
+
+## Assumptions
+- Number of dimensions is a positive integer
+
 ## Notes
 - Input is a "training set" of k-dimensional points
-- Edge case: more dimensions than points
-- We should tune parameter c (number of points per hypercube)
-- What if we make this a ternary tree instead of a binary tree? Make this a paramter to test...
+- Edge case: more dimensions than points?
 - To compare pesudocode 1 method with pseudocode 2 method, compare standalone in-place-sort-all-points with sample-and-copy methods
+- Each node in the tree represents a hypercube (cell)
+- Special case code for n = 1?
 
-## Pseudocode 3
+## Dumb Querying
+- Query runtime: ?
 ```
+# unfinished
 query(node, point)
 	while "in the current search area, there aren't
 	       k neighbors nearer to point than there are
 	       to any wall"
-		expandSearchArea()
+		doubleSearchArea()
 	if point[node.dimension] < node.median:
 		return query(node.left, point)
 	else if point[node.dimension] >= node.median:
 		return query(node.right, point)
-
-splitPoints(points, dim)
-	sample = getSample(points)
-	sort(sample,dim)
-	median = sample[len(sample)/2].dim
-	newpoints = []
-	ileft = 0
-	iright = len(points)-1
-	for i = 0 to len(points):
-		if points[i].dim < median:
-			newpoints[ileft] = points[i]
-			ileft++
-		else
-			newpoints[iright] = points[i]
-			iright--
-	assert ileft = iright + 1 # they pass eachother
-	return newpoints, mid
-
-# accepts array of points, returns k-d tree and array
-buildTree(points)
-	newpoints, mid = splitPoints(points,x)
-	root = Node(dim = x,
-	            start = 0,
-	            end = len(points),
-	            mid = mid
-	            median = newpoints[mid].x)
-	# Recurse left
-	leftPoints = newpoints[0:mid]
-	newLeftPoints, leftMid = splitPoints(leftPoints,y)
-	leftKid = Node(dim = y,
-	               start = 0,
-	               end = mid,
-	               mid = leftMid,
-	               median = newLeftPoints[leftMid].y)
-	root.left = leftKid
-	# Recurse right
-	rightPoints = newpoints[mid:-1]
-	newRightPoints, rightMid = splitPoints(rightPoints,y)
-	rightKid = Node(dim = y,
-	                start = mid,
-	                end = len(points),
-	                mid = rightMid,
-	                median = newRightPoints[rightMid].y)
-
-main()
-	points = []
-	queryPoint = ()
-	readPoints(points)
-	readQueryPoint(queryPoint)
-	tree = buildTree(points)
-	neighbors = query(tree, queryPoint)
 ```
 
-## Pseudocode 2
-- Sorting at most 10,000 points at a time (which is O(1))
-- Training runtime: n + 2*(n/2) + ... + (n/c)*c = nlog(n)
+## Tree Construction with Random Sampling
+- Training runtime: nlog(n) (because there are log(c/n) terms in n + 2*(n/2) + ... + (n/c)*c and we are sorting at most 10,000 points which is O(1))
 ```
-splitPoints(points, dim)
-	sample = getSample(points)
-	sort(sample,dim)
-	median = sample[len(sample)/2].dim
-	newpoints = []
-	ileft = 0
-	iright = len(points)-1
-	for i = 0 to len(points):
-		if points[i].dim < median:
-			newpoints[ileft] = points[i]
-			ileft++
-		else
-			newpoints[iright] = points[i]
-			iright--
-	assert ileft = iright + 1 # they pass eachother
-	return newpoints, mid
+# points is a global
+points
 
-main
-	points = []
-	readPoints(points)
-	newpoints, mid = splitPoints(points,x)
-	root = Node(dim = x,
-	            start = 0,
-	            end = len(points),
-	            mid = mid
-	            median = newpoints[mid].x)
-	# Recurse left
-	leftPoints = newpoints[0:mid]
-	newLeftPoints, leftMid = splitPoints(leftPoints,y)
-	leftKid = Node(dim = y,
-	               start = 0,
-	               end = mid,
-	               mid = leftMid,
-	               median = newLeftPoints[leftMid].y)
-	root.left = leftKid
-	# Recurse right
-	rightPoints = newpoints[mid:-1]
-	newRightPoints, rightMid = splitPoints(rightPoints,y)
-	rightKid = Node(dim = y,
-	                start = mid,
-	                end = len(points),
-	                mid = rightMid,
-	                median = newRightPoints[rightMid].y)
-	...
+# returns pivot value of points[start] to points[end]
+# by randomly sampling
+getPivot(start,end,dim)
+    sample = getRandomSample(points[start] to points[end])
+    sort(sample by dim)
+    pivotVal = sample[len(sample)/2].dim
+    return pivotVal
+
+# accepts indices of points array
+# returns chosen pivot index
+splitPoints(start,end,dim)
+    if end - start < 10000
+        sort(points[start] to points[end] by dim)
+        return end - start/2
+    p = getPivot(start,end,dim)
+    pivotIndex = partition(points[start] to points[end] by dim with pivot p)
+    return pivotIndex
+
+buildTree(start,end,dim)
+    # we stop when each leaf refers to a cell (hypercube) containing at most c points
+    if end - start <= c:
+        return Node(start = start,
+                    end = end)
+    pivotIndex = splitPoints(start,end,dim)
+    node = Node(dim = dim,
+                median = points[pivotIndex].dim
+                start = 0,
+                end = end)
+    node.left = buildTree(start,pivotIndex,nextDim)
+    node.right = buildTree(pivotIndex,end,nextDim)
+
+readPoints()
+tree = buildTree(points,0,numpoints-1,0)
 ```
 
-## Pseudocode 1
-- We stop when each leaf refers to a hypercube containing at most c points
-- Sort is nlog(n)
-- Training runtime: nlog(n) + 2*(n/2)log(n/2) + 4*(n/4)log(n/4) + ... + (n/c)*c*log(c)
-- This is nlog(n)log(n) (there are log(n/c) terms above - see [this post](https://stackoverflow.com/questions/44231116/is-complexity-ologn-logn-2-logn-4-logn-8-log2-olog))
+## Simple Tree Construction
+- Training runtime: nlog(n)log(n) (because there are log(n/c) terms in nlog(n) + 2*(n/2)log(n/2) + 4*(n/4)log(n/4) + ... + (n/c)*c*log(c, also see [this post](https://stackoverflow.com/questions/44231116/is-complexity-ologn-logn-2-logn-4-logn-8-log2-olog))
 ```
-points = []
-readPoints(points)
-sort(points,x)
-root = Node(dim = x,
-            start = 0,
-            end = len(points))
-leftPoints = points[:len(points)/2]
-rightPoints = points[len(points)/2:]
-sort(leftPoints,y)
-leftKid = Node(dim = y,
-               start = 0,
-               end = len(points)/2)
-sort(rightPoints,y)
-rightKid = Node(dim = y,
-                start = len(points)/2,
-                end = len(points))
-leftBotPoints = leftPoints[:len(leftPoints)/2]
-leftTopPoints = leftPoints[len(leftPoints)/2:]
-rightBotPoints = rightPoints[:len(rightPoints)/2]
-rightTopPoints = rightPoints[len(rightPoints)/2:]
-...
+# points is global
+points
+
+# accepts indices of points array
+# returns k-d tree
+buildTree(start,end,dim)
+    # we stop when each leaf refers to a cell (hypercube) containing at most c points
+    if end - start <= c:
+        return Node(start = start,
+                    end = end)
+    sort(points[start] to points[end] by dim)
+    node = Node(dim = dim,
+                median = points[len/2].dim
+                start = 0,
+                end = end)
+    node.left = buildTree(start,start+end/2,nextDim)
+    node.right = buildTree(start+end/2,end,nextDim)
+
+readPoints()
+tree = buildTree(points,0,numpoints-1,0)
+```
+
+## Brute Force
+- Training runtime: N/A
+- Query runtime: nlog(n)
+```
+readPoints()
+readQueries()
+for query in queries
+    sortByDistance(points,query)
+    knn = points[0] to points[k-1]
 ```

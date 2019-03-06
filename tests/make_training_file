@@ -2,15 +2,15 @@
 
 import argparse
 from argparse import RawTextHelpFormatter
-import datetime
 import struct
 import random
-from time import sleep
 import sys
 
 def getUniqueFileID():
-    now = datetime.datetime.now()
-    return int(now.strftime("%d%H%M%S"))
+    f = open('/dev/urandom','rb')
+    uniqueid = struct.unpack('=Q',f.read(8))[0]
+    f.close()
+    return uniqueid
 
 parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
 parser.add_argument("rows", type=int,help="Number of points")
@@ -30,9 +30,9 @@ dist = args.dist
 
 # generate file header for datafile
 fp.write("TRAINING")
-fp.write(struct.pack("=q",getUniqueFileID()))
-fp.write(struct.pack("=q",args.rows))
-fp.write(struct.pack("=q",args.cols))
+fp.write(struct.pack("=Q",getUniqueFileID()))
+fp.write(struct.pack("=Q",args.rows))
+fp.write(struct.pack("=Q",args.cols))
 
 funcList = [random.uniform,random.gauss,random.betavariate,random.expovariate]
 paramList = [(-1000,1000),(0,1000),(30,20),(0.01,)]

@@ -2,15 +2,15 @@
 
 import argparse
 from argparse import RawTextHelpFormatter
-import datetime
 import struct
 import random
-from time import sleep
 import sys
 
 def getUniqueFileID():
-    now = datetime.datetime.now()
-    return int(now.strftime("%d%H%M%S"))
+    f = open('/dev/urandom','rb')
+    uniqueid = struct.unpack('=Q',f.read(8))[0]
+    f.close()
+    return uniqueid
 
 parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
 parser.add_argument("queryCount", type=int,help="Number of queries")
@@ -34,10 +34,10 @@ k = args.k
 dp.write("QUERY")
 dp.write(struct.pack("=h",0))
 dp.write(struct.pack("=B",0))
-dp.write(struct.pack("=q",fileid))
-dp.write(struct.pack("=q",queryCount))
-dp.write(struct.pack("=q",args.cols))
-dp.write(struct.pack("=q",k))
+dp.write(struct.pack("=Q",fileid))
+dp.write(struct.pack("=Q",queryCount))
+dp.write(struct.pack("=Q",args.cols))
+dp.write(struct.pack("=Q",k))
 
 funcList = [random.uniform,random.gauss,random.betavariate,random.expovariate]
 paramList = [(-1000,1000),(0,1000),(30,20),(0.01,)]

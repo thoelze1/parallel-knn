@@ -1,8 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/python
 
 from scipy import spatial
+import datetime
 import struct
 import sys
+
+def getUniqueFileID():
+    now = datetime.datetime.now()
+    return int(now.strftime("%d%H%M%S"))
 
 def knn(pts, queries, k):
     tree = spatial.KDTree(pts)
@@ -11,10 +16,8 @@ def knn(pts, queries, k):
         res = tree.query([query],k)
         indices = res[1][0]
         knn = []
-        knn.append(query)
-        knn.append([])
         for i in indices:
-            knn[1].append(pts[i])
+            knn.append(pts[i])
         knns.append(knn)
     return knns
 
@@ -36,17 +39,33 @@ def readFile(filename):
                 pt.append(val)
             pts.append(tuple(pt))
     if name == 'TRAINING':
-        return (pts, numdim)
+        return (pts, fileid)
     else:
-        return (pts, k, numdim)
+        return (pts, fileid, k)
 
-pts, ptsd = readFile(sys.argv[1])
-queries, k, queriesd = readFile(sys.argv[2])
-assert ptsd == queriesd
+def writeFile(knns,trainingid,queryid):
+    fileid = getUniqueFileID()
+    resultfilename = "result_" + str(fileid) + ".dat"
+    with open(resultfilename,"wb") as rf:
+        rf.write("RESULT")
+        rf.write(struct.pack("=h",0))
+        rf.write(struct.pack("=q",trainingid))
+        rf.write(struct.pack("=q",queryid))
+        rf.write(struct.pack("=q",fileid))
+        rf.write(struct.pack("=q",len(knns)))		# number of queries
+        rf.write(struct.pack("=q",len(knns[0][0])))	# number of dimensions
+        rf.write(struct.pack("=q",len(knns[0])))	# k
+        buff = str()
+        for knn in knns:
+            for n in knn:
+                for d in n:
+                    buff+=struct.pack("=f",d)
+        rf.write(buff)
+
+pts, trainingid = readFile(sys.argv[1])
+queries, queryid, k = readFile(sys.argv[2])
+
+assert len(pts[0]) == len(queries[0])
+
 knns = knn(pts, queries, k)
-
-print("k-NNs:")
-for knn in knns:
-    print('\tk-NN of query '+str(knn[0]))
-    for n in knn[1]:
-        print('\t\t'+str(n))
+writeFile(knns, trainingid, queryid)

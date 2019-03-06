@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
 from scipy import spatial
-import datetime
 import struct
 import sys
 
 def getUniqueFileID():
-    now = datetime.datetime.now()
-    return int(now.strftime("%d%H%M%S"))
+    f = open('/dev/urandom','rb')
+    uniqueid = struct.unpack('=Q',f.read(8))[0]
+    f.close()
+    return uniqueid
 
 def knn(pts, queries, k):
     tree = spatial.KDTree(pts)
@@ -49,12 +50,12 @@ def writeFile(knns,trainingid,queryid):
     with open(resultfilename,"wb") as rf:
         rf.write("RESULT")
         rf.write(struct.pack("=h",0))
-        rf.write(struct.pack("=q",trainingid))
-        rf.write(struct.pack("=q",queryid))
-        rf.write(struct.pack("=q",fileid))
-        rf.write(struct.pack("=q",len(knns)))		# number of queries
-        rf.write(struct.pack("=q",len(knns[0][0])))	# number of dimensions
-        rf.write(struct.pack("=q",len(knns[0])))	# k
+        rf.write(struct.pack("=Q",trainingid))
+        rf.write(struct.pack("=Q",queryid))
+        rf.write(struct.pack("=Q",fileid))
+        rf.write(struct.pack("=Q",len(knns)))		# number of queries
+        rf.write(struct.pack("=Q",len(knns[0][0])))	# number of dimensions
+        rf.write(struct.pack("=Q",len(knns[0])))	# k
         buff = str()
         for knn in knns:
             for n in knn:

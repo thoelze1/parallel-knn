@@ -37,7 +37,11 @@ query(node, point)
 ```
 
 ## Tree Construction with Random Sampling
-- Training runtime: nlog(n) (because there are log(c/n) terms in n + 2*(n/2) + ... + (n/c)*c and we are sorting at most 10,000 points which is O(1))
+- Training runtime: nlog(n)
+
+   because there are log(c/n) terms in n + 2*(n/2) + ... + (n/c)*c
+
+   and each sort is of at most 10,000 points, an O(1) operation
 ```
 # points is a global
 points
@@ -78,7 +82,11 @@ tree = buildTree(points,0,numpoints-1,0)
 ```
 
 ## Simple Tree Construction
-- Training runtime: nlog(n)log(n) (because there are log(n/c) terms in nlog(n) + 2*(n/2)log(n/2) + 4*(n/4)log(n/4) + ... + (n/c)*c*log(c, also see [this post](https://stackoverflow.com/questions/44231116/is-complexity-ologn-logn-2-logn-4-logn-8-log2-olog))
+- Training runtime: nlog(n)log(n)
+
+   because there are log(n/c) terms in nlog(n) + 2*(n/2)log(n/2) + 4*(n/4)log(n/4) + ... + (n/c)*c*log(c)
+
+   also see [this post](https://stackoverflow.com/questions/44231116/is-complexity-ologn-logn-2-logn-4-logn-8-log2-olog))
 ```
 # points is global
 points

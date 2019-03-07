@@ -1,9 +1,17 @@
 # Parallel k-NN
 
+## Expectations
+- Linear speedup of queries up to 8 cores
+- Some speedup on tree building (not as much as on queries)
+
 ## To Do
-1. Implement brute force solution
-2. Implement k-d tree - when queried, double cell size (go to parent) until you're sure you have the knn
-3. Implement k-d tree with adjacent cells linked
+1. Implement single-threaded k-d tree construction and querying
+2. Implement multithreading
+
+## Parallelization
+- Build disjoint training subtrees in parallel
+- Compute different queries at the same time
+- Make one query faster by searching disjoint subtrees in parallel
 
 ## Parameters to tune
 - Number of points per leaf cell (per hypercube)
@@ -20,12 +28,49 @@
 - To compare pesudocode 1 method with pseudocode 2 method, compare standalone in-place-sort-all-points with sample-and-copy methods
 - Each node in the tree represents a hypercube (cell)
 - Special case code for n = 1?
+- mmap the results file (eliminates locking issues)
 
 ## Dumb Querying
-- Query runtime: ?
+- Query runtime best case: log(n)
+- Query runtime worst case: ?
 ```
-# unfinished
-query(node, point)
+# accepts query point, current nearest neighbors (priority queue), bounding hypercube (priority queue)
+# returns whether or not we're done
+solved(point, cnn, hypercube)
+	furthestCNN = cnn.peek()
+	closestWall = hypercube.peek()
+	if closestWall < furthestCNN
+		return True
+	else
+		return False
+
+# accepts root node, query point
+# returns leaf node and corresponding hypercube
+traverseDown(root, point)
+	currNode = root
+	hypercube = [(inf,inf),(inf,inf),...]
+	while currNode has children:
+		d = currNode.dim
+		hyperplane = currNode.median
+		if point[d] < hyperplane
+			hyperCube[d].upper = hyperplane
+			currNode = currNode.left
+		else
+			hyperCube[d].lower = hyperplane
+			currNode = currNode.right
+	return currNode, hypercube
+
+# accepts node, query point
+# returns k nearest neighbors
+query(root, query, k)
+	leafNode, hypercube = traverseDown(root, query)
+	cnn = priorityQueue
+	for points[node.start] to points[node.start+k]:
+		add (point,distance) to cnn
+	walls = priorityQueue
+	for dimension in hypercube:
+		add (dimension.upper,distance) to walls
+		add (dimension.lower,distance) to walls
 	while "in the current search area, there aren't
 	       k neighbors nearer to point than there are
 	       to any wall"
@@ -34,6 +79,8 @@ query(node, point)
 		return query(node.left, point)
 	else if point[node.dimension] >= node.median:
 		return query(node.right, point)
+
+tree = buildTree()
 ```
 
 ## Tree Construction with Random Sampling

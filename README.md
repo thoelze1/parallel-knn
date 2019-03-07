@@ -5,8 +5,11 @@
 - Some speedup on tree building (not as much as on queries)
 
 ## To Do
-1. Implement single-threaded k-d tree construction and querying
-2. Implement multithreading
+1. Implement single-threaded k-d tree construction and querying according to pseudocode
+2. Implement multithreaded training
+3. Implement multithreaded multiple queries
+4. Implement multithreaded single query
+5. Play around with parameters to improve timing
 
 ## Parallelization
 - Build disjoint training subtrees in parallel
@@ -23,16 +26,17 @@
 - Number of dimensions is a positive integer
 
 ## Notes
-- Input is a "training set" of k-dimensional points
 - Edge case: more dimensions than points?
-- To compare pesudocode 1 method with pseudocode 2 method, compare standalone in-place-sort-all-points with sample-and-copy methods
-- Each node in the tree represents a hypercube (cell)
 - Special case code for n = 1?
-- mmap the results file (eliminates locking issues)
+- mmap the results file (eliminates locking/concurrency issues)
+- Root of tree should also have bounding hypercube and pointer to points
+- If tree is less-than-balanced, one thread working on training will finish before another, and should help unfinished threads continue training
+- Join all training threads before starting querying
 
-## Dumb Querying
+## Tree Construction with Random Sampling and Smart Querying
+- Training runtime: nlog(n)
 - Query runtime best case: log(n)
-- Query runtime worst case: ?
+- Query runtime worst case: n
 ```
 # accepts query point, current nearest neighbors (priority queue), bounding hypercube (priority queue)
 # returns whether or not we're done
@@ -44,54 +48,39 @@ solved(point, cnn, hypercube)
 	else
 		return False
 
-# accepts root node, query point
-# returns leaf node and corresponding hypercube
-traverseDown(root, point)
-	currNode = root
-	hypercube = [(inf,inf),(inf,inf),...]
-	while currNode has children:
-		d = currNode.dim
-		hyperplane = currNode.median
-		if point[d] < hyperplane
-			hyperCube[d].upper = hyperplane
-			currNode = currNode.left
-		else
-			hyperCube[d].lower = hyperplane
-			currNode = currNode.right
-	return currNode, hypercube
-
-# accepts node, query point
-# returns k nearest neighbors
-query(root, query, k)
-	leafNode, hypercube = traverseDown(root, query)
-	cnn = priorityQueue
-	for points[node.start] to points[node.start+k]:
-		add (point,distance) to cnn
-	walls = priorityQueue
-	for dimension in hypercube:
-		add (dimension.upper,distance) to walls
-		add (dimension.lower,distance) to walls
-	while "in the current search area, there aren't
-	       k neighbors nearer to point than there are
-	       to any wall"
-		doubleSearchArea()
-	if point[node.dimension] < node.median:
-		return query(node.left, point)
-	else if point[node.dimension] >= node.median:
-		return query(node.right, point)
-
-tree = buildTree()
-```
-
-## Tree Construction with Random Sampling
-- Training runtime: nlog(n)
-
-   because there are log(c/n) terms in n + 2*(n/2) + ... + (n/c)*c
-
-   and each sort is of at most 10,000 points, an O(1) operation
-```
-# points is a global
-points
+# accepts node, bounding box representing current node,
+# querypoint, number of k still needed, whether node is in cube
+# returns knn
+query(node, cube, queryPoint, k, isInCube)
+    if node is leaf
+        return k nn in leaf (or as many as you can)
+    if isInCube
+        newCube = cube
+        if queryPoint[node.d] < node.median
+            newCube[dim][1] = node.median
+            nn = query(node.left, newCube, queryPoint, k, true)
+        else
+            newCube[dim][0] = node.median
+            nn = query(node.right, newCube, queryPoint, k, true)
+        if len(nn) < k or nn.min > distanceFromQueryTo
+            newCube = cube
+            if queryPoint[node.d] < node.median
+                newCube[dim][0] = node.median
+                newk = k - (number of nn closer to query than to wall)
+                othernn = query(node.right, newCube, queryPoint, newk, false)
+            else
+                newCube[dim][1] = node.median
+                newk = k - (number of nn closer to query than to wall)
+                othernn = query(node.left, newCube, queryPoint, newk, false)
+            return best of othernn and nn
+        else
+            return knn
+    else
+        othernn = get newk nn from closerCube
+        if nn.min() > distanceToFurtherCube:
+            otherothernn = get newnewk nn from furtherCube
+            return best of othernn and nn
+        return othernn
 
 # returns pivot value of points[start] to points[end]
 # by randomly sampling
@@ -125,45 +114,11 @@ buildTree(start,end,dim)
     node.right = buildTree(pivotIndex,end,nextDim)
 
 readPoints()
-tree = buildTree(points,0,numpoints-1,0)
-```
-
-## Simple Tree Construction
-- Training runtime: nlog(n)log(n)
-
-   because there are log(n/c) terms in nlog(n) + 2*(n/2)log(n/2) + 4*(n/4)log(n/4) + ... + (n/c)*c*log(c)
-
-   also see [this post](https://stackoverflow.com/questions/44231116/is-complexity-ologn-logn-2-logn-4-logn-8-log2-olog))
-```
-# points is global
-points
-
-# accepts indices of points array
-# returns k-d tree
-buildTree(start,end,dim)
-    # we stop when each leaf refers to a cell (hypercube) containing at most c points
-    if end - start <= c:
-        return Node(start = start,
-                    end = end)
-    sort(points[start] to points[end] by dim)
-    node = Node(dim = dim,
-                median = points[len/2].dim
-                start = 0,
-                end = end)
-    node.left = buildTree(start,start+end/2,nextDim)
-    node.right = buildTree(start+end/2,end,nextDim)
-
-readPoints()
-tree = buildTree(points,0,numpoints-1,0)
-```
-
-## Brute Force
-- Training runtime: N/A
-- Query runtime: nlog(n)
-```
-readPoints()
 readQueries()
-for query in queries
-    sortByDistance(points,query)
-    knn = points[0] to points[k-1]
+time1()
+tree = buildTree(points,0,numpoints-1,0)
+time2()
+for queryPoint in queries:
+    query(tree, queryPoint)
+time3()
 ```

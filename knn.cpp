@@ -5,36 +5,15 @@
 #include <iostream>
 #include <assert.h>
 #include <string.h>
-#include <unistd.h>
-#include <iomanip>
 #include <random>
 #include <vector>
 #include <algorithm>
 
-#include "io.hpp"
+#include "io.h"
+#include "Node.h"
 
 #define CELLSIZE	1'000'000'000
 #define SAMPLESIZE	10'000
-
-class Node {
-    public:
-        Node(uint64_t start, uint64_t end) {
-            startIndex = start;
-            endIndex = end;
-        }
-        Node(uint64_t start, uint64_t end, float med, unsigned int d) {
-            startIndex = start;
-            endIndex = end;
-            median = med;
-            dim = d;
-        }
-        uint64_t startIndex, endIndex;
-        float median;
-        unsigned int dim;
-        Node *left;
-        Node *right;
-    private:
-};
 
 float
 getPivot(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {

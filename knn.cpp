@@ -11,8 +11,11 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <iomanip>
+#include <random>
+#include <vector>
 
-#define CELLSIZE	1000000000
+#define CELLSIZE	1'000'000'000
+#define SAMPLESIZE	10'000
 
 class Node {
     public:
@@ -66,10 +69,43 @@ readFile(char *filename, unsigned int *size) {
     return file_mem;
 }
 
+std::vector<float> *
+randomSample(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
+    /*
+    uint64_t numPoints = endIndex - startIndex / d;
+    std::vector<float> *sample = new std::vector<float>(SAMPLESIZE);
+    std::default_random_engine eng;
+    std::uniform_int_distribution<int> dist(0, numPoints);
+    for(unsigned int i = 0; i < SAMPLESIZE; i++) {
+        int randomIndex = dist(eng);
+        *sample[i] = points[startIndex + currd + d*randomIndex];
+    }
+    return sample;
+    */
+    return new std::vector<float>;
+}
+
+uint64_t
+partition(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
+    /*
+    if(endIndex - startIndex < CELLSIZE) {
+
+    }
+    */
+    return 0;
+}
+
 // Make Leaf class?
 Node *
-buildTree(float *points, uint64_t startIndex, uint64_t endIndex) {
-    return new Node(startIndex, endIndex);
+buildTree(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
+    if(endIndex - startIndex < CELLSIZE) {
+        return new Node(startIndex, endIndex);
+    }
+    uint64_t pivotIndex = partition(points, startIndex, endIndex, d, currd);
+    uint64_t pivotValue = points[pivotIndex*d+currd];
+    Node *node = new Node(startIndex, endIndex, pivotValue, d);
+    node->left = buildTree(points, startIndex, pivotIndex-1, d, currd+1%d);
+    node->right = buildTree(points, pivotIndex, endIndex, d, currd+1%d);
 }
 
 int
@@ -99,7 +135,7 @@ main(int argc, char **argv) {
     std::cout << nQueries<< std::endl;
     std::cout << k << std::endl;
 
-    Node *tree = buildTree(points, 0, nPoints*nDim-1);
+    Node *tree = buildTree(points, 0, nPoints-1, nDim, 0);
 
     rv = munmap(trainingData, trainingFileSize); assert(rv == 0);
     rv = munmap(queryData, queryFileSize); assert(rv == 0);

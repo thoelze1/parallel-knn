@@ -12,6 +12,28 @@
 #include <sys/mman.h>
 #include <iomanip>
 
+#define CELLSIZE	1000000000
+
+class Node {
+    public:
+        Node(uint64_t start, uint64_t end) {
+            startIndex = start;
+            endIndex = end;
+        }
+        Node(uint64_t start, uint64_t end, float med, unsigned int d) {
+            startIndex = start;
+            endIndex = end;
+            median = med;
+            dim = d;
+        }
+        uint64_t startIndex, endIndex;
+        float median;
+        unsigned int dim;
+        Node *left;
+        Node *right;
+    private:
+};
+
 char *
 readFile(char *filename, unsigned int *size) {
 
@@ -44,6 +66,12 @@ readFile(char *filename, unsigned int *size) {
     return file_mem;
 }
 
+// Make Leaf class?
+Node *
+buildTree(float *points, uint64_t startIndex, uint64_t endIndex) {
+    return new Node(startIndex, endIndex);
+}
+
 int
 main(int argc, char **argv) {
 
@@ -61,7 +89,6 @@ main(int argc, char **argv) {
 
     uint64_t queryFileId = *(uint64_t *)(queryData+8);
     uint64_t nQueries = *(uint64_t *)(queryData+16);
-    //assert(*(uint64_t *)queryData+3 == nDim);
     uint64_t k = *(uint64_t *)(queryData+32);
     float *queries = (float *)(queryData+40);
 
@@ -72,5 +99,8 @@ main(int argc, char **argv) {
     std::cout << nQueries<< std::endl;
     std::cout << k << std::endl;
 
+    Node *tree = buildTree(points, 0, nPoints*nDim-1);
+
     rv = munmap(trainingData, trainingFileSize); assert(rv == 0);
+    rv = munmap(queryData, queryFileSize); assert(rv == 0);
 }

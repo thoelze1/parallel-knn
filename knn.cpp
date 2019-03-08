@@ -12,16 +12,17 @@
 #include "io.h"
 #include "Node.h"
 
-#define CELLSIZE	1'000'000'000
+#define CELLSIZE	8
 #define SAMPLESIZE	10'000
 
+// change to use SAMPLESIZE
 float
 getPivot(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
     uint64_t numPoints = endIndex - startIndex;
-    std::vector<float> sample(SAMPLESIZE);
+    std::vector<float> sample(numPoints);
     std::default_random_engine eng;
     std::uniform_int_distribution<int> dist(0, numPoints);
-    for(unsigned int i = 0; i < SAMPLESIZE; i++) {
+    for(unsigned int i = 0; i < numPoints; i++) {
         int randomIndex = dist(eng);
         sample[i] = points[(startIndex+randomIndex)*d+currd];
     }
@@ -32,25 +33,26 @@ getPivot(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint
 /* see http://www.cplusplus.com/reference/algorithm/partition/ */
 uint64_t
 partition(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
-    /*
-    if(endIndex - startIndex < CELLSIZE) {
-
-    }
-    while (first!=last) {
-      while (pred(*first)) {
+    int first, last;
+    float pivotVal = getPivot(points, startIndex, endIndex, d, currd);
+    float *tempPoint = new float[d];
+    first = startIndex;
+    last = endIndex;
+    while (first != last) {
+      while (points[first*d+currd] < pivotVal) {
         ++first;
-        if (first==last) return first;
+        if (first == last) return first;
       }
       do {
         --last;
-        if (first==last) return first;
-      } while (!pred(*last));
-      swap (*first,*last);
+        if (first == last) return first;
+      } while (points[last*d+currd] >= pivotVal);
+      memcpy(tempPoint, &points[first*d], d*sizeof(float));
+      memcpy(&points[first*d], &points[last*d], d*sizeof(float));
+      memcpy(&points[last*d], tempPoint, d*sizeof(float));
       ++first;
     }
     return first;
-    */
-    return 0;
 }
 
 // Make Leaf class?
@@ -62,7 +64,7 @@ buildTree(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uin
     uint64_t pivotIndex = partition(points, startIndex, endIndex, d, currd);
     uint64_t pivotValue = points[pivotIndex*d+currd];
     Node *node = new Node(startIndex, endIndex, pivotValue, d);
-    node->left = buildTree(points, startIndex, pivotIndex-1, d, currd+1%d);
+    node->left = buildTree(points, startIndex, pivotIndex, d, currd+1%d);
     node->right = buildTree(points, pivotIndex, endIndex, d, currd+1%d);
 }
 
@@ -86,7 +88,11 @@ main(int argc, char **argv) {
     uint64_t k = *(uint64_t *)(queryData+32);
     float *queries = (float *)(queryData+40);
 
-    Node *tree = buildTree(points, 0, nPoints-1, nDim, 0);
+    float *newPoints = new float[nPoints*nDim];
+    for(int i = 0; i < nPoints*nDim; i++) {
+        newPoints[i] = points[i];
+    }
+    Node *tree = buildTree(newPoints, 0, nPoints, nDim, 0);
 
     resultsDataSize = 7*8 + nQueries*k*nDim*sizeof(float);
     resultsData= writeFile(argv[4], &resultsFd, resultsDataSize);

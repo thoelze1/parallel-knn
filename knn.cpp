@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <random>
 #include <vector>
+#include <algorithm>
 
 #define CELLSIZE	1'000'000'000
 #define SAMPLESIZE	10'000
@@ -69,28 +70,40 @@ readFile(char *filename, unsigned int *size) {
     return file_mem;
 }
 
-std::vector<float> *
-randomSample(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
-    /*
-    uint64_t numPoints = endIndex - startIndex / d;
-    std::vector<float> *sample = new std::vector<float>(SAMPLESIZE);
+float
+getPivot(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
+    uint64_t numPoints = endIndex - startIndex;
+    std::vector<float> sample(SAMPLESIZE);
     std::default_random_engine eng;
     std::uniform_int_distribution<int> dist(0, numPoints);
     for(unsigned int i = 0; i < SAMPLESIZE; i++) {
         int randomIndex = dist(eng);
-        *sample[i] = points[startIndex + currd + d*randomIndex];
+        sample[i] = points[(startIndex+randomIndex)*d+currd];
     }
-    return sample;
-    */
-    return new std::vector<float>;
+    std::nth_element(sample.begin(), sample.begin() + sample.size()/2, sample.end());
+    return sample[sample.size()/2];
 }
 
+/* see http://www.cplusplus.com/reference/algorithm/partition/ */
 uint64_t
 partition(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
     /*
     if(endIndex - startIndex < CELLSIZE) {
 
     }
+    while (first!=last) {
+      while (pred(*first)) {
+        ++first;
+        if (first==last) return first;
+      }
+      do {
+        --last;
+        if (first==last) return first;
+      } while (!pred(*last));
+      swap (*first,*last);
+      ++first;
+    }
+    return first;
     */
     return 0;
 }
@@ -128,15 +141,10 @@ main(int argc, char **argv) {
     uint64_t k = *(uint64_t *)(queryData+32);
     float *queries = (float *)(queryData+40);
 
-    std::cout << trainingFileId << std::endl;
-    std::cout << nPoints << std::endl;
-    std::cout << nDim << std::endl;
-    std::cout << queryFileId << std::endl;
-    std::cout << nQueries<< std::endl;
-    std::cout << k << std::endl;
-
     Node *tree = buildTree(points, 0, nPoints-1, nDim, 0);
 
     rv = munmap(trainingData, trainingFileSize); assert(rv == 0);
     rv = munmap(queryData, queryFileSize); assert(rv == 0);
+
+    return 0;
 }

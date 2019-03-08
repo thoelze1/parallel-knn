@@ -39,67 +39,6 @@
 - Query runtime best case: log(n)
 - Query runtime worst case: n
 ```
-getCloserChild(node, cube, queryPoint)
-    leftDistance = min(distance to closest corner of node.left, distance to closest wall of node.left)
-    rightDistance = min(distance to closest corner of node.left, distance to closest wall of node.left)
-    if leftDistance < rightDistance
-        return node.left
-    else
-        return node.right
-
-# accepts node, bounding box representing current node,
-# querypoint, number of k still needed
-# returns nn
-externalknn(node, cube, queryPoint, k)
-    if node is leaf
-        return k nn in leaf (or as many as you can)
-    newCube = cube
-    if getCloserChild == node.left
-        newCube[dim][1] = node.median
-        nn = externalknn(node.left, newCube, queryPoint, k)
-    else
-        newCube[dim][0] = node.median
-        nn = externalknn(node.right, newCube, queryPoint, k)
-    if len(nn) < k or nn.min() > distanceToFurtherCube:
-        othernn = get newnewk nn from furtherCube
-        return best of othernn and nn
-    return othernn
-
-queryWorse(node, cube, queryPoint, k):
-    newCube = cube
-    if queryPoint[node.d] < node.median
-        newCube[dim][0] = node.median
-        newk = k - (number of nn closer to query than to wall)
-        othernn = externalknn(node.right, newCube, queryPoint, newk)
-    else
-        newCube[dim][1] = node.median
-        newk = k - (number of nn closer to query than to wall)
-        othernn = externalknn(node.left, newCube, queryPoint, newk)
-    return othernn
-
-queryBetter(node, cube, queryPoint, k):
-    newCube = cube
-    if queryPoint[node.d] < node.median
-        newCube[dim][1] = node.median
-        nn = internalknn(node.left, newCube, queryPoint, k)
-    else
-        newCube[dim][0] = node.median
-        nn = internalknn(node.right, newCube, queryPoint, k)
-    return nn
-
-# accepts node, bounding box representing current node,
-# querypoint, number of k still needed, whether node is in cube
-# returns nn
-internalknn(node, cube, queryPoint, k)
-    if node is leaf
-        return k nn in leaf (or as many as you can)
-    nn = queryBetter(node, cube, queryPoint, k)
-    if len(nn) < k or nn.min > distanceFromQueryToMedian
-        othernn = queryWorse(node, cube, queryPoint, k)
-        return best of othernn and nn
-    else
-        return knn
-
 needMore(node, cube, queryPoint, worstNeighbor, in)
     if in:
         return len(nn) < k or nn.min > distanceFromQueryToMedian
@@ -108,7 +47,7 @@ needMore(node, cube, queryPoint, worstNeighbor, in)
 
 getBetterChild(node, cube, queryPoint, in)
     if in:
-        betterChild = (queryPoint[node.d] < node.median)? node.left : node.right
+        return = (queryPoint[node.d] < node.median)? node.left : node.right
     else:
         leftDistance = min(distance to closest corner of node.left, distance to closest wall of node.left)
         rightDistance = min(distance to closest corner of node.left, distance to closest wall of node.left)
@@ -117,19 +56,19 @@ getBetterChild(node, cube, queryPoint, in)
         else
             return node.right
 
-getknn(node, cube, queryPoint, k, in)
+getnn(node, cube, queryPoint, k, inCube)
     # Base case
     if node is leaf
         return k nn in leaf (or as many as you can)
     # Determine which subtree is better
-    better = getBetterChild(node, cube, queryPoint, in)
+    better = getBetterChild(node, cube, queryPoint, inCube)
     # Search better subtree
     newCube = cube
     if better == node.left
         newCube[dim][1] = node.median
     else
         newCube[dim][0] = node.median
-    nn = getknn(better, newCube, queryPoint, k, in)
+    nn = getnn(better, newCube, queryPoint, k, in)
     # If necessary, search worse subtree
     if needMore(node, cube, queryPoint, in, nn[worst])
         newCube = cube

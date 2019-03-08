@@ -3,17 +3,17 @@
  */
 
 #include <iostream>
-#include <fcntl.h>
 #include <assert.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <iomanip>
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define CELLSIZE	1'000'000'000
 #define SAMPLESIZE	10'000
@@ -37,6 +37,41 @@ class Node {
         Node *right;
     private:
 };
+
+char *
+writeFile(char *filename, int *retfd, unsigned int size) {
+
+    int fd = open(filename, O_CREAT | O_RDWR, 0777);
+    if (fd < 0) {
+        int en = errno;
+        std::cerr << "Couldn't open " << std::string(filename) << ": " << strerror(en) << "." << std::endl;
+        exit(2);
+    }
+
+    int rv = ftruncate(fd, size);
+    if (rv < 0) {
+        int en = errno;
+        std::cerr << strerror(en) << std::endl;
+        exit(2);
+    }
+
+    // Use some flags that will hopefully improve performance.
+    void *vp = mmap(nullptr, size, PROT_WRITE, MAP_SHARED, fd, 0);
+    if (vp == MAP_FAILED) {
+        int en = errno;
+        fprintf(stderr, "mmap() failed: %s\n", strerror(en));
+        exit(3);
+    }
+    char *file_mem = (char *) vp;
+
+    // Tell the kernel that it should evict the pages as soon as possible.
+    rv = madvise(vp, size, MADV_SEQUENTIAL|MADV_WILLNEED); assert(rv == 0);
+
+    *retfd = fd;
+
+    return file_mem;
+}
+
 
 char *
 readFile(char *filename, unsigned int *size) {
@@ -124,9 +159,9 @@ buildTree(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uin
 int
 main(int argc, char **argv) {
 
-    int rv;
-    char *trainingData, *queryData;
-    unsigned int trainingFileSize, queryFileSize;
+    int rv, resultsFd;
+    char *trainingData, *queryData, *resultsFile;
+    unsigned int trainingFileSize, queryFileSize, resultsFileSize;
 
     trainingData = readFile(argv[2], &trainingFileSize);
     queryData = readFile(argv[3], &queryFileSize);
@@ -143,8 +178,16 @@ main(int argc, char **argv) {
 
     Node *tree = buildTree(points, 0, nPoints-1, nDim, 0);
 
+    resultsFileSize = 7*8 + nQueries*k*nDim*sizeof(float);
+    resultsFile = writeFile(argv[4], &resultsFd, resultsFileSize);
+
+    std::string results("RESULTS\0");
+    results.copy(resultsFile, results.length());
+
     rv = munmap(trainingData, trainingFileSize); assert(rv == 0);
     rv = munmap(queryData, queryFileSize); assert(rv == 0);
+    rv = munmap(resultsFile, resultsFileSize); assert(rv == 0);
+    rv = close(resultsFd); assert(rv == 0);
 
     return 0;
 }

@@ -19,10 +19,11 @@
 float
 getPivot(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
     uint64_t numPoints = endIndex - startIndex;
-    std::vector<float> sample(numPoints);
+    unsigned int sampleSize = (numPoints < SAMPLESIZE)? numPoints : SAMPLESIZE;
+    std::vector<float> sample(sampleSize);
     std::default_random_engine eng;
     std::uniform_int_distribution<int> dist(0, numPoints);
-    for(unsigned int i = 0; i < numPoints; i++) {
+    for(unsigned int i = 0; i < sampleSize; i++) {
         int randomIndex = dist(eng);
         sample[i] = points[(startIndex+randomIndex)*d+currd];
     }

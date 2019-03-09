@@ -7,13 +7,13 @@
 
 #include <cstdint>
 
-#include "Node.h"
+#include "KDNode.h"
 
 class KDTree {
     public:
         KDTree(){}
-        KDTree(Node *root, float *points, uint64_t nPoints, uint64_t nDim);
-        Node *root;
+        KDTree(KDNode *root, float *points, uint64_t nPoints, uint64_t nDim);
+        KDNode *root;
         float *points;
         uint64_t nPoints, nDim;
     private:

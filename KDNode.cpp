@@ -2,14 +2,14 @@
  * Tanner Hoelzel
  */
 
-#include "Node.h"
+#include "KDNode.h"
 
-Node::Node(uint64_t start, uint64_t end) {
+KDNode::KDNode(uint64_t start, uint64_t end) {
     startIndex = start;
     endIndex = end;
 }
 
-Node::Node(uint64_t start, uint64_t end, float med, unsigned int d) {
+KDNode::KDNode(uint64_t start, uint64_t end, float med, unsigned int d) {
     startIndex = start;
     endIndex = end;
     median = med;

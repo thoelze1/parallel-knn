@@ -11,7 +11,7 @@
 #define SAMPLESIZE	10'000
 
 #include "KDTree.h"
-#include "Node.h"
+#include "KDNode.h"
 
 // change to use SAMPLESIZE
 float
@@ -55,20 +55,20 @@ partition(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uin
 }
 
 // Make Leaf class?
-Node *
+KDNode *
 buildTree(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {
     if(endIndex - startIndex < CELLSIZE) {
-        return new Node(startIndex, endIndex);
+        return new KDNode(startIndex, endIndex);
     }
     uint64_t pivotIndex = partition(points, startIndex, endIndex, d, currd);
     uint64_t pivotValue = points[pivotIndex*d+currd];
-    Node *node = new Node(startIndex, endIndex, pivotValue, d);
+    KDNode *node = new KDNode(startIndex, endIndex, pivotValue, d);
     node->left = buildTree(points, startIndex, pivotIndex, d, currd+1%d);
     node->right = buildTree(points, pivotIndex, endIndex, d, currd+1%d);
 }
 
 KDTree *
 buildTree(float *points, uint64_t nPoints, uint64_t nDim) {
-    Node *root = buildTree(points, 0, nPoints, nDim, 0);
+    KDNode *root = buildTree(points, 0, nPoints, nDim, 0);
     return new KDTree(root, points, nPoints, nDim);
 }

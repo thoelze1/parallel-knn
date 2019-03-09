@@ -4,7 +4,7 @@
 
 #include "KDTree.h"
 
-KDTree::KDTree(Node *root, float *points, uint64_t nPoints, uint64_t nDim) {
+KDTree::KDTree(KDNode *root, float *points, uint64_t nPoints, uint64_t nDim) {
     this->root = root;
     this->points = points;
     this->nPoints = nPoints;

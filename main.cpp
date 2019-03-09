@@ -7,7 +7,7 @@
 #include <sys/resource.h>
 
 #include "io.h"
-#include "train.h"
+#include "KDTree.h"
 
 int
 main(int argc, char **argv) {

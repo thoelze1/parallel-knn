@@ -19,4 +19,7 @@ class KDTree {
     private:
 };
 
+KDTree *
+buildTree(float *points, uint64_t nPoints, uint64_t nDim);
+
 #endif

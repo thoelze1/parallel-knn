@@ -2,6 +2,9 @@
  * Tanner Hoelzel
  */
 
+#ifndef _NODE_H_
+#define _NODE_H_
+
 #include <cstdint>
 
 class Node {
@@ -16,3 +19,5 @@ class Node {
         Node *right;
     private:
 };
+
+#endif

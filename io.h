@@ -2,6 +2,9 @@
  * Tanner Hoelzel
  */
 
+#ifndef _IO_H_
+#define _IO_H_
+
 char *
 writeFile(char *filename, int *retfd, unsigned int size);
 
@@ -10,3 +13,5 @@ readFile(char *filename, int *retfd, unsigned int *size);
 
 int
 closeFile(char *mmap, int fd, unsigned int size);
+
+#endif

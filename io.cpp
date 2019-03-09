@@ -11,6 +11,20 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+uint64_t
+getUniqueId(void) {
+    int fd = open("/dev/urandom", O_RDONLY);
+    if (fd < 0) {
+        int en = errno;
+        std::cerr << "Couldn't open /dev/urandom: " << strerror(en) << "." << std::endl;
+        exit(2);
+    }
+    uint64_t uniqueId;
+    int rv = read(fd, &uniqueId, sizeof(uniqueId)); assert(rv == sizeof(uniqueId));
+    rv = close(fd); assert(rv == 0);
+    return 0;
+}
+
 int
 closeFile(char *mmap, int fd, unsigned int size) {
     int rv;

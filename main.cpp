@@ -51,7 +51,7 @@ main(int argc, char **argv) {
     results.copy(resultsData, results.length());
     *(uint64_t *)(resultsData+8) = trainingFileId;
     *(uint64_t *)(resultsData+16) = queryFileId;
-    //*(uint64_t *)(resultsData+24) = from /dev/urandom
+    *(uint64_t *)(resultsData+24) = getUniqueId();
     *(uint64_t *)(resultsData+32) = nQueries;
     *(uint64_t *)(resultsData+40) = nDim;
     *(uint64_t *)(resultsData+48) = k;

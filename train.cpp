@@ -10,6 +10,7 @@
 #define CELLSIZE	8
 #define SAMPLESIZE	10'000
 
+#include "KDTree.h"
 #include "Node.h"
 
 // change to use SAMPLESIZE
@@ -64,4 +65,10 @@ buildTree(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uin
     Node *node = new Node(startIndex, endIndex, pivotValue, d);
     node->left = buildTree(points, startIndex, pivotIndex, d, currd+1%d);
     node->right = buildTree(points, pivotIndex, endIndex, d, currd+1%d);
+}
+
+KDTree *
+buildTree(float *points, uint64_t nPoints, uint64_t nDim) {
+    Node *root = buildTree(points, 0, nPoints, nDim, 0);
+    return new KDTree(root, points, nPoints, nDim);
 }

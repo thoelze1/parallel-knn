@@ -42,7 +42,7 @@ main(int argc, char **argv) {
     rv = closeFile(trainingData, trainingFd, trainingFileSize);
     rv = closeFile(queryData, queryFd, queryFileSize);
 
-    Node *tree = buildTree(newPoints, 0, nPoints, nDim, 0);
+    KDTree *tree = buildTree(newPoints, nPoints, nDim);
 
     resultsDataSize = 7*8 + nQueries*k*nDim*sizeof(float);
     resultsData= writeFile(argv[4], &resultsFd, resultsDataSize);
@@ -56,6 +56,8 @@ main(int argc, char **argv) {
     *(uint64_t *)(resultsData+40) = nDim;
     *(uint64_t *)(resultsData+48) = k;
 
+    //query((float *)(resultsData+48), newQueries, newPoints,
+
     rv = closeFile(resultsData, resultsFd, resultsDataSize);
 
     struct rusage ru;
@@ -63,6 +65,7 @@ main(int argc, char **argv) {
     auto cv = [](const timeval &tv) {
         return double(tv.tv_sec) + double(tv.tv_usec)/1000000;
     };
+
     std::cerr << "Resource Usage:\n";
     std::cerr << "    User CPU Time: " << cv(ru.ru_utime) << '\n';
     std::cerr << "    Sys CPU Time: " << cv(ru.ru_stime) << '\n'; 

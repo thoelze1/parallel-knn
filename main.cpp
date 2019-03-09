@@ -29,17 +29,6 @@ main(int argc, char **argv) {
     uint64_t k = *(uint64_t *)(queryData+32);
     float *queries = (float *)(queryData+40);
 
-    float *newQueries = new float[nQueries*nDim];
-    for(int i = 0; i < nQueries*nDim; i++) {
-        newQueries[i] = queries[i];
-    }
-
-    rv = closeFile(queryData, queryFd, queryFileSize);
-
-    KDTree *tree = new KDTree(points, nPoints, nDim);
-
-    rv = closeFile(trainingData, trainingFd, trainingFileSize);
-
     resultsDataSize = 7*8 + nQueries*k*nDim*sizeof(float);
     resultsData= writeFile(argv[4], &resultsFd, resultsDataSize);
 
@@ -52,8 +41,11 @@ main(int argc, char **argv) {
     *(uint64_t *)(resultsData+40) = nDim;
     *(uint64_t *)(resultsData+48) = k;
 
-    //queryTree(KDTree *tree, newQueries, newPoints, (float *)(resultsData+48), 
+    KDTree *tree = new KDTree(points, nPoints, nDim);
+    tree->query(queries, nQueries, k, (float *)(resultsData+56));
 
+    rv = closeFile(trainingData, trainingFd, trainingFileSize);
+    rv = closeFile(queryData, queryFd, queryFileSize);
     rv = closeFile(resultsData, resultsFd, resultsDataSize);
 
     struct rusage ru;

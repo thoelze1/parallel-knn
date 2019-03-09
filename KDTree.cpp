@@ -27,6 +27,13 @@ KDTree::KDTree(float *points, uint64_t nPoints, uint64_t nDim) {
     this->root = buildTree(newPoints, 0, nPoints, nDim, 0);
 }
 
+void KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out) {
+    float *newQueries = new float[nQueries*this->nDim];
+    for(int i = 0; i < nQueries*nDim; i++) {
+        newQueries[i] = queries[i];
+    }
+}
+
 // change to use SAMPLESIZE
 float
 getPivot(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uint64_t currd) {

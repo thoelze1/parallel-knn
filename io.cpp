@@ -22,7 +22,7 @@ getUniqueId(void) {
     uint64_t uniqueId;
     int rv = read(fd, &uniqueId, sizeof(uniqueId)); assert(rv == sizeof(uniqueId));
     rv = close(fd); assert(rv == 0);
-    return 0;
+    return uniqueId;
 }
 
 int
@@ -50,7 +50,7 @@ writeFile(char *filename, int *retfd, unsigned int size) {
     }
 
     // Use some flags that will hopefully improve performance.
-    void *vp = mmap(nullptr, size, PROT_WRITE, MAP_PRIVATE, fd, 0);
+    void *vp = mmap(nullptr, size, PROT_WRITE, MAP_SHARED, fd, 0);
     if (vp == MAP_FAILED) {
         int en = errno;
         fprintf(stderr, "mmap() failed: %s\n", strerror(en));

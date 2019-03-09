@@ -92,6 +92,15 @@ main(int argc, char **argv) {
     for(int i = 0; i < nPoints*nDim; i++) {
         newPoints[i] = points[i];
     }
+
+    float *newQueries = new float[nQueries*nDim];
+    for(int i = 0; i < nQueries*nDim; i++) {
+        newQueries[i] = queries[i];
+    }
+
+    rv = closeFile(trainingData, trainingFd, trainingFileSize);
+    rv = closeFile(queryData, queryFd, queryFileSize);
+
     Node *tree = buildTree(newPoints, 0, nPoints, nDim, 0);
 
     resultsDataSize = 7*8 + nQueries*k*nDim*sizeof(float);
@@ -106,8 +115,6 @@ main(int argc, char **argv) {
     *(uint64_t *)(resultsData+40) = nDim;
     *(uint64_t *)(resultsData+48) = k;
 
-    rv = closeFile(trainingData, trainingFd, trainingFileSize);
-    rv = closeFile(queryData, queryFd, queryFileSize);
     rv = closeFile(resultsData, resultsFd, resultsDataSize);
 
     return 0;

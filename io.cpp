@@ -55,7 +55,7 @@ writeFile(char *filename, int *retfd, unsigned int size) {
 char *
 readFile(char *filename, int *retfd, unsigned int *size) {
 
-    int fd = open(filename, O_RDWR);
+    int fd = open(filename, O_RDONLY);
     if (fd < 0) {
         int en = errno;
         std::cerr << "Couldn't open " << std::string(filename) << ": " << strerror(en) << "." << std::endl;
@@ -66,7 +66,7 @@ readFile(char *filename, int *retfd, unsigned int *size) {
     int rv = fstat(fd, &sb); assert(rv == 0);
 
     // Use some flags that will hopefully improve performance.
-    void *vp = mmap(nullptr, sb.st_size, PROT_WRITE, MAP_PRIVATE, fd, 0);
+    void *vp = mmap(nullptr, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (vp == MAP_FAILED) {
         int en = errno;
         fprintf(stderr, "mmap() failed: %s\n", strerror(en));

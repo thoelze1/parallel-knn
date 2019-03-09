@@ -6,7 +6,9 @@
 #include <assert.h>
 #include <sys/resource.h>
 
+extern "C" {
 #include "io.h"
+}
 #include "KDTree.h"
 
 int
@@ -41,8 +43,8 @@ main(int argc, char **argv) {
     *(uint64_t *)(resultsData+40) = nDim;
     *(uint64_t *)(resultsData+48) = k;
 
-    KDTree *tree = new KDTree(points, nPoints, nDim);
-    tree->query(queries, nQueries, k, (float *)(resultsData+56));
+    KDTree tree(points, nPoints, nDim);
+    tree.query(queries, nQueries, k, (float *)(resultsData+56));
 
     rv = closeFile(trainingData, trainingFd, trainingFileSize);
     rv = closeFile(queryData, queryFd, queryFileSize);

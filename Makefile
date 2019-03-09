@@ -1,3 +1,5 @@
+GPROFFLAGS=-pg -g -no-pie
+
 all: knn
 
 knn: main.o io.o KDNode.o KDTree.o
@@ -6,8 +8,8 @@ knn: main.o io.o KDNode.o KDTree.o
 main.o: main.cpp io.h KDNode.h
 	g++ -O3 -c main.cpp
 
-io.o: io.cpp io.h
-	g++ -O3 -c io.cpp
+io.o: io.c io.h
+	gcc -O3 -c io.c
 
 KDNode.o: KDNode.cpp KDNode.h
 	g++ -O3 -c KDNode.cpp

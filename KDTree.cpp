@@ -6,15 +6,19 @@
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <limits>
 
-#define CELLSIZE	8
+#define CELLSIZE	10
 #define SAMPLESIZE	10'000
 
 #include "KDTree.h"
 #include "KDNode.h"
 
-//KDNode *
-//buildTree(uint64_t startIndex, uint64_t endIndex, uint64_t currd);
+struct CompareDistance {
+    bool operator()(const union pair &lhs, const union pair &rhs) {
+        return lhs.d < rhs.d;
+    }
+};
 
 KDTree::KDTree(float *points, uint64_t nPoints, uint64_t nDim) {
     float *newPoints = new float[nPoints*nDim];
@@ -32,19 +36,43 @@ KDTree::~KDTree(void) {
     destroyNode(this->root);
 }
 
-void KDTree::destroyNode(KDNode *node) {
-    if(!node->isLeaf) {
+void
+KDTree::destroyNode(KDNode *node) {
+    if(node->isLeaf) {
+        delete node;
+    } else {
         destroyNode(node->left);
         destroyNode(node->right);
         delete node;
     }
 }
 
-void KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out) {
-    float *newQueries = new float[nQueries*this->nDim];
-    for(int i = 0; i < nQueries*nDim; i++) {
-        newQueries[i] = queries[i];
+void
+KDTree::getNN(KDNode *node, std::vector<union pair> &nn, float *cube, float *queryPoint, uint64_t k, bool inCube) {
+
+}
+
+void
+KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out) {
+    float *cube = new float[this->nDim*2];
+    for(int i = 0; i < this->nDim; i++) {
+        cube[2*i+0] = std::numeric_limits<float>::min();
+        cube[2*i+1] = std::numeric_limits<float>::max();
     }
+    std::vector<union pair> nn;
+    nn.reserve(k);
+    for(uint64_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
+        for(int i = 0; i < k; i++) {
+            nn[i].d = std::numeric_limits<float>::max();
+        }
+        getNN(this->root, nn, cube, &queries[queryIndex*this->nDim], k, true);
+        for(int i = 0; i < k; i++) {
+            float *dest = out + queryIndex*k*this->nDim + i*this->nDim;
+            uint32_t pointsIndex = nn[i].i >> 32;
+            memcpy(dest, &this->points[pointsIndex], this->nDim*sizeof(float));
+        }
+    }
+    delete [] cube;
 }
 
 // change to use SAMPLESIZE

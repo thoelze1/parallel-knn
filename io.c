@@ -2,7 +2,11 @@
  * Tanner Hoelzel
  */
 
-#include <iostream>
+#include <error.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
@@ -16,7 +20,7 @@ getUniqueId(void) {
     int fd = open("/dev/urandom", O_RDONLY);
     if (fd < 0) {
         int en = errno;
-        std::cerr << "Couldn't open /dev/urandom: " << strerror(en) << "." << std::endl;
+        fprintf(stderr, "Couldn't open /dev/urandom: %s\n", strerror(en));
         exit(2);
     }
     uint64_t uniqueId;
@@ -38,19 +42,19 @@ writeFile(char *filename, int *retfd, unsigned int size) {
     int fd = open(filename, O_CREAT | O_RDWR, 0600);
     if (fd < 0) {
         int en = errno;
-        std::cerr << "Couldn't open " << std::string(filename) << ": " << strerror(en) << "." << std::endl;
+        fprintf(stderr, "Couldn't open %s: %s\n", filename, strerror(en));
         exit(2);
     }
 
     int rv = ftruncate(fd, size);
     if (rv < 0) {
         int en = errno;
-        std::cerr << strerror(en) << std::endl;
+        fprintf(stderr, "%s\n", strerror(en));
         exit(2);
     }
 
     // Use some flags that will hopefully improve performance.
-    void *vp = mmap(nullptr, size, PROT_WRITE, MAP_SHARED, fd, 0);
+    void *vp = mmap(NULL, size, PROT_WRITE, MAP_SHARED, fd, 0);
     if (vp == MAP_FAILED) {
         int en = errno;
         fprintf(stderr, "mmap() failed: %s\n", strerror(en));
@@ -72,7 +76,7 @@ readFile(char *filename, int *retfd, unsigned int *size) {
     int fd = open(filename, O_RDONLY);
     if (fd < 0) {
         int en = errno;
-        std::cerr << "Couldn't open " << std::string(filename) << ": " << strerror(en) << "." << std::endl;
+        fprintf(stderr, "Couldn't open %s: %s\n", filename, strerror(en));
         exit(2);
     }
 
@@ -80,7 +84,7 @@ readFile(char *filename, int *retfd, unsigned int *size) {
     int rv = fstat(fd, &sb); assert(rv == 0);
 
     // Use some flags that will hopefully improve performance.
-    void *vp = mmap(nullptr, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    void *vp = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (vp == MAP_FAILED) {
         int en = errno;
         fprintf(stderr, "mmap() failed: %s\n", strerror(en));

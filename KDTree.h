@@ -12,14 +12,11 @@
 class KDTree {
     public:
         KDTree(){}
-        KDTree(KDNode *root, float *points, uint64_t nPoints, uint64_t nDim);
+        KDTree(float *points, uint64_t nPoints, uint64_t nDim);
         KDNode *root;
         float *points;
         uint64_t nPoints, nDim;
     private:
 };
-
-KDTree *
-buildTree(float *points, uint64_t nPoints, uint64_t nDim);
 
 #endif

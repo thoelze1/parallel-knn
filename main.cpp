@@ -36,7 +36,8 @@ main(int argc, char **argv) {
 
     rv = closeFile(queryData, queryFd, queryFileSize);
 
-    KDTree *tree = buildTree(points, nPoints, nDim);
+    KDTree *tree = new KDTree(points, nPoints, nDim);
+
     rv = closeFile(trainingData, trainingFd, trainingFileSize);
 
     resultsDataSize = 7*8 + nQueries*k*nDim*sizeof(float);
@@ -51,7 +52,7 @@ main(int argc, char **argv) {
     *(uint64_t *)(resultsData+40) = nDim;
     *(uint64_t *)(resultsData+48) = k;
 
-    //query((float *)(resultsData+48), newQueries, newPoints,
+    //queryTree(KDTree *tree, newQueries, newPoints, (float *)(resultsData+48), 
 
     rv = closeFile(resultsData, resultsFd, resultsDataSize);
 

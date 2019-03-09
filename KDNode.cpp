@@ -5,10 +5,12 @@
 #include "KDNode.h"
 
 KDNode::KDNode(float med) {
-    median = med;
+    this->median = med;
+    this->isLeaf = false;
 }
 
 KDNode::KDNode(uint64_t start, uint64_t end) {
-    left = (KDNode *)start;
-    right = (KDNode *)end;
+    this->left = (KDNode *)start;
+    this->right = (KDNode *)end;
+    this->isLeaf = true;
 }

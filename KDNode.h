@@ -13,6 +13,7 @@ class KDNode {
         KDNode(float med);
         KDNode(uint64_t start, uint64_t end);
         float median;
+        bool isLeaf;
         KDNode *left;
         KDNode *right;
     private:

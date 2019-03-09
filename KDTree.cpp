@@ -69,7 +69,7 @@ buildTree(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uin
     }
     uint64_t pivotIndex = partition(points, startIndex, endIndex, d, currd);
     uint64_t pivotValue = points[pivotIndex*d+currd];
-    KDNode *node = new KDNode(startIndex, endIndex, pivotValue, d);
+    KDNode *node = new KDNode(pivotValue);
     node->left = buildTree(points, startIndex, pivotIndex, d, currd+1%d);
     node->right = buildTree(points, pivotIndex, endIndex, d, currd+1%d);
     return node;

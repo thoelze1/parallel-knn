@@ -10,11 +10,9 @@
 class KDNode {
     public:
         KDNode(){}
+        KDNode(float med);
         KDNode(uint64_t start, uint64_t end);
-        KDNode(uint64_t start, uint64_t end, float med, unsigned int d);
-        uint64_t startIndex, endIndex;
         float median;
-        unsigned int dim;
         KDNode *left;
         KDNode *right;
     private:

@@ -29,20 +29,15 @@ main(int argc, char **argv) {
     uint64_t k = *(uint64_t *)(queryData+32);
     float *queries = (float *)(queryData+40);
 
-    float *newPoints = new float[nPoints*nDim];
-    for(int i = 0; i < nPoints*nDim; i++) {
-        newPoints[i] = points[i];
-    }
-
     float *newQueries = new float[nQueries*nDim];
     for(int i = 0; i < nQueries*nDim; i++) {
         newQueries[i] = queries[i];
     }
 
-    rv = closeFile(trainingData, trainingFd, trainingFileSize);
     rv = closeFile(queryData, queryFd, queryFileSize);
 
-    KDTree *tree = buildTree(newPoints, nPoints, nDim);
+    KDTree *tree = buildTree(points, nPoints, nDim);
+    rv = closeFile(trainingData, trainingFd, trainingFileSize);
 
     resultsDataSize = 7*8 + nQueries*k*nDim*sizeof(float);
     resultsData= writeFile(argv[4], &resultsFd, resultsDataSize);

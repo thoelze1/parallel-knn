@@ -65,10 +65,15 @@ buildTree(float *points, uint64_t startIndex, uint64_t endIndex, uint64_t d, uin
     KDNode *node = new KDNode(startIndex, endIndex, pivotValue, d);
     node->left = buildTree(points, startIndex, pivotIndex, d, currd+1%d);
     node->right = buildTree(points, pivotIndex, endIndex, d, currd+1%d);
+    return node;
 }
 
 KDTree *
 buildTree(float *points, uint64_t nPoints, uint64_t nDim) {
-    KDNode *root = buildTree(points, 0, nPoints, nDim, 0);
-    return new KDTree(root, points, nPoints, nDim);
+    float *newPoints = new float[nPoints*nDim];
+    for(int i = 0; i < nPoints*nDim; i++) {
+        newPoints[i] = points[i];
+    }
+    KDNode *root = buildTree(newPoints, 0, nPoints, nDim, 0);
+    return new KDTree(root, newPoints, nPoints, nDim);
 }

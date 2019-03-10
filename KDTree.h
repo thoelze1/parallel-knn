@@ -26,6 +26,7 @@ public:
     KDTree(float *points, uint64_t nPoints, uint64_t nDim);
     ~KDTree();
     void query(float *queries, uint64_t nQueries, uint64_t k, float *out);
+    void print(void);
 private:
     KDNode *root;
     float *points;
@@ -35,8 +36,9 @@ private:
                std::priority_queue<union pair, std::vector<union pair>, CompareDistance> &nn,
                float *queryPoint,
                int currD);
+    void printVisitor(KDNode *node, int currD);
     float getPivot(uint64_t startIndex, uint64_t endIndex, uint64_t currd);
-    uint64_t partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd);
+    uint64_t partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd, float *pivotVal);
     KDNode *buildTree(uint64_t startIndex, uint64_t endIndex, uint64_t currd);
     void destroyNode(KDNode* node);
 };

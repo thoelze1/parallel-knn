@@ -34,7 +34,7 @@ main(int argc, char **argv) {
     resultsDataSize = 7*8 + nQueries*k*nDim*sizeof(float);
     resultsData= writeFile(argv[4], &resultsFd, resultsDataSize);
 
-    std::string results("RESULTS\0");
+    std::string results("RESULT\0\0");
     results.copy(resultsData, results.length());
     *(uint64_t *)(resultsData+8) = trainingFileId;
     *(uint64_t *)(resultsData+16) = queryFileId;

@@ -2,6 +2,7 @@
  * Tanner Hoelzel
  */
 
+#include <iomanip>
 #include <iostream>
 #include <string.h>
 #include <random>
@@ -10,7 +11,7 @@
 #include <limits>
 #include <cmath>
 
-#define CELLSIZE	10
+#define CELLSIZE	5
 #define SAMPLESIZE	10'000
 
 #include "KDTree.h"
@@ -43,6 +44,29 @@ KDTree::destroyNode(KDNode *node) {
     }
 }
 
+void
+KDTree::printVisitor(KDNode *node, int currD) {
+    if(node->isLeaf) {
+        std::cout << std::setw(currD * 10) << "Leaf" << std::endl;
+        for(uint64_t i = (uint64_t)node->left; i < (uint64_t)node->right; i++) {
+            std::cout << std::setw(currD * 10 + 10) << "Point: ";
+            for(int d = 0; d < nDim; d++) {
+                std::cout << std::setw(10) << this->points[i*nDim+d] << "," ;
+            }
+            std::cout << std::endl;
+        }
+        return;
+    }
+    std::cout << std::setw(currD * 10) << "Dim: " << currD << " Med: " << node->median << std::endl;
+    printVisitor(node->left, currD + 1);
+    printVisitor(node->right, currD + 1);
+}
+
+void
+KDTree::print(void) {
+    printVisitor(root, 0);
+}
+
 float
 KDTree::distanceToPoint(float *point1, float *point2) {
     double distance = 0;
@@ -69,6 +93,7 @@ KDTree::getNN(KDNode *node,
                 newPair.i = i << 32;
                 newPair.d = d;
                 nn.push(newPair);
+                //std::cout << neighbor[0] << "," << neighbor[1] << "\t" << d << std::endl;
             }
         }
         return;
@@ -79,14 +104,15 @@ KDTree::getNN(KDNode *node,
          first = node->left;
          second = node->right;
     } else {
-         first = node->left;
-         second = node->right;
+         first = node->right;
+         second = node->left;
     }
     // Search better subtree
-    getNN(first, nn, queryPoint, currD+1%this->nDim);
+    getNN(first, nn, queryPoint, (currD+1)%this->nDim);
+    //std::cout << currD << std::endl;
     // Search worse subtree if necessary
-    if(nn.top().d > abs(queryPoint[currD] - node->median)) {
-        getNN(second, nn, queryPoint, currD+1%this->nDim);
+    if(nn.top().d > std::abs(queryPoint[currD] - node->median)) {
+        getNN(second, nn, queryPoint, (currD+1)%this->nDim);
     }
 }
 
@@ -97,7 +123,6 @@ KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out) {
         std::priority_queue<union pair, std::vector<union pair>, CompareDistance> nn;
         for(int i = 0; i < k; i++) {
             union pair newPair;
-            //newPair.i = (long)i << 32;
             newPair.d = std::numeric_limits<float>::max();
             nn.push(newPair);
         }
@@ -105,8 +130,8 @@ KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out) {
         for(int i = 0; i < k; i++) {
             float *dest = &out[queryIndex*k*this->nDim + i*this->nDim];
             uint32_t pointsIndex = nn.top().i >> 32;
-            std::cout << pointsIndex << std::endl;
             memcpy(dest, &this->points[pointsIndex*this->nDim], this->nDim*sizeof(float));
+            //std::cout << nn.top().d << std::endl;
             nn.pop();
         }
     }
@@ -129,7 +154,7 @@ KDTree::getPivot(uint64_t startIndex, uint64_t endIndex, uint64_t currd) {
 
 /* see http://www.cplusplus.com/reference/algorithm/partition/ */
 uint64_t
-KDTree::partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd) {
+KDTree::partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd, float *retPivotVal) {
     int first, last;
     float pivotVal;
     uint64_t numPoints = endIndex - startIndex;
@@ -143,6 +168,7 @@ KDTree::partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd) {
     } else {
         pivotVal = getPivot(startIndex, endIndex, currd);
     }
+    *retPivotVal = pivotVal;
     float *tempPoint = new float[this->nDim];
     first = startIndex;
     last = endIndex;
@@ -167,18 +193,13 @@ KDTree::partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd) {
 KDNode *
 KDTree::buildTree(uint64_t startIndex, uint64_t endIndex, uint64_t currd) {
     if(endIndex - startIndex < CELLSIZE) {
-        for(uint64_t i = startIndex; i < endIndex; i++) {
-            for(int d = 0; d < this->nDim; d++) {
-                std::cout << points[i*this->nDim+d] << std::endl;
-             }
-        }
         return new KDNode(startIndex, endIndex);
     }
-    uint64_t pivotIndex = partition(startIndex, endIndex, currd);
-    uint64_t pivotValue = this->points[pivotIndex*this->nDim+currd];
+    float pivotValue;
+    uint64_t pivotIndex = partition(startIndex, endIndex, currd, &pivotValue);
     KDNode *node = new KDNode(pivotValue);
-    node->left = buildTree(startIndex, pivotIndex, currd+1%this->nDim);
-    node->right = buildTree(pivotIndex, endIndex, currd+1%this->nDim);
+    node->left = buildTree(startIndex, pivotIndex, (currd+1)%this->nDim);
+    node->right = buildTree(pivotIndex, endIndex, (currd+1)%this->nDim);
     return node;
 }
 

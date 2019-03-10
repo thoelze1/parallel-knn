@@ -10,6 +10,13 @@ def knn(pts, queries, k):
     for query in queries:
         res = tree.query([query],k)
         indices = res[1][0]
+        '''
+        # print distances
+        print("Correct distances:")
+        distances = res[0][0]
+        for d in distances:
+            print(d)
+        '''
         knn = []
         for i in indices:
             knn.append(pts[i])
@@ -85,6 +92,7 @@ trainingInfo = readFile(sys.argv[1])
 queryInfo = readFile(sys.argv[2])
 resultInfo = readFile(sys.argv[3])
 
+
 # check that ids match
 if resultInfo['trainingfileid'] != trainingInfo['fileid']:
     sys.exit(-1)
@@ -110,5 +118,15 @@ knns = knn(trainingInfo['pts'], queryInfo['queries'], queryInfo['k'])
 for i in range(resultInfo['numqueries']):
     correct = sorted(knns[i])
     result = sorted(resultInfo['knns'][i])
+    '''
+    print("Query")
+    print(queryInfo['queries'][i])
+    print("Correct")
+    for res in correct:
+        print(res)
+    print("Result")
+    for res in result:
+        print(res)
+    '''
     if correct != result:
         sys.exit(-1)

@@ -18,6 +18,7 @@ main(int argc, char **argv) {
     char *trainingData, *queryData, *resultsData;
     unsigned int trainingFileSize, queryFileSize, resultsDataSize;
 
+    int numCores = std::atoi(argv[1]);
     trainingData = readFile(argv[2], &trainingFd, &trainingFileSize);
     queryData = readFile(argv[3], &queryFd, &queryFileSize);
 
@@ -43,7 +44,7 @@ main(int argc, char **argv) {
     *(uint64_t *)(resultsData+40) = nDim;
     *(uint64_t *)(resultsData+48) = k;
 
-    KDTree tree(points, nPoints, nDim);
+    KDTree tree(points, nPoints, nDim, numCores);
     tree.query(queries, nQueries, k, (float *)(resultsData+56));
 
     rv = closeFile(trainingData, trainingFd, trainingFileSize);
@@ -55,12 +56,12 @@ main(int argc, char **argv) {
     auto cv = [](const timeval &tv) {
         return double(tv.tv_sec) + double(tv.tv_usec)/1000000;
     };
-
+/*
     std::cerr << "Resource Usage:\n";
     std::cerr << "    User CPU Time: " << cv(ru.ru_utime) << '\n';
     std::cerr << "    Sys CPU Time: " << cv(ru.ru_stime) << '\n'; 
     std::cerr << "    Max Resident: " << ru.ru_maxrss << '\n';
     std::cerr << "    Page Faults: " << ru.ru_majflt << '\n';
-
+*/
     return 0;
 }

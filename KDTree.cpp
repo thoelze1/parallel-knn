@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <limits>
 #include <cmath>
+#include <thread>
+#include <future>
 
 #define CELLSIZE	5
 #define SAMPLESIZE	10'000
@@ -17,15 +19,32 @@
 #include "KDTree.h"
 #include "KDNode.h"
 
-KDTree::KDTree(float *points, uint64_t nPoints, uint64_t nDim) {
-    float *newPoints = new float[nPoints*nDim];
-    for(int i = 0; i < nPoints*nDim; i++) {
-        newPoints[i] = points[i];
+void
+constructorHelper(float *newPoints, float *oldPoints, uint64_t startIndex, uint64_t endIndex, uint64_t nDim) {
+    for(int i = startIndex*nDim; i < endIndex*nDim; i++) {
+        newPoints[i] = oldPoints[i];
     }
-    this->points = newPoints;
-    this->nPoints = nPoints;
+}
+
+KDTree::KDTree(float *points, uint64_t nPoints, uint64_t nDim, int nCores) {
     this->nDim = nDim;
-    this->root = buildTree(0, nPoints, 0);
+    this->points = new float[nPoints*nDim];
+    this->nPoints = nPoints;
+    /*
+    std::vector<std::thread> threads;
+    uint64_t startIndex = 0;
+    for(int i = 0; i < nCores-1; i++) {
+        threads.emplace_back(constructorHelper,this->points,points,startIndex,startIndex+(nPoints/nCores),nDim);
+        startIndex += nPoints/nCores;
+    }
+    constructorHelper(this->points, points, startIndex, nPoints, nDim);
+    for(std::thread &t : threads) {
+        t.join();
+    }
+    threads.clear();
+    */
+    constructorHelper(this->points,points,0,nPoints,nDim);
+    buildTree(&(this->root), 0, nPoints, 0, nCores-1);
 }
 
 KDTree::~KDTree(void) {
@@ -190,17 +209,26 @@ KDTree::partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd, float 
     return first;
 }
 
-KDNode *
-KDTree::buildTree(uint64_t startIndex, uint64_t endIndex, uint64_t currd) {
+void
+KDTree::buildTree(KDNode **node, uint64_t startIndex, uint64_t endIndex, uint64_t currd, int nCores) {
     if(endIndex - startIndex < CELLSIZE) {
-        return new KDNode(startIndex, endIndex);
+        *node = new KDNode(startIndex, endIndex);
+        return;
     }
     float pivotValue;
     uint64_t pivotIndex = partition(startIndex, endIndex, currd, &pivotValue);
-    KDNode *node = new KDNode(pivotValue);
-    node->left = buildTree(startIndex, pivotIndex, (currd+1)%this->nDim);
-    node->right = buildTree(pivotIndex, endIndex, (currd+1)%this->nDim);
-    return node;
+    KDNode *newNode = new KDNode(pivotValue);
+    if(nCores > 0) {
+        int nCoresRight = nCores/2;
+        int nCoresLeft = nCores - nCoresRight;
+        std::thread t(&KDTree::buildTree, this, &(newNode->left), startIndex, pivotIndex, (currd+1)%this->nDim, nCoresLeft-1);
+        buildTree(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim, nCoresRight);
+        t.join();
+    } else {
+        buildTree(&(newNode->left), startIndex, pivotIndex, (currd+1)%this->nDim, 0);
+        buildTree(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim, 0);
+    }
+    *node = newNode;
 }
 
 /*

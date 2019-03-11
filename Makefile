@@ -3,7 +3,7 @@ GPROFFLAGS=-pg -g -no-pie
 all: knn
 
 knn: main.o io.o KDNode.o KDTree.o
-	g++ -O3 main.o io.o KDNode.o KDTree.o -o knn
+	g++ -O3 main.o io.o KDNode.o KDTree.o -o knn -pthread
 
 main.o: main.cpp io.h KDNode.h
 	g++ -O3 -c main.cpp

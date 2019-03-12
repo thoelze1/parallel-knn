@@ -44,7 +44,9 @@ KDTree::KDTree(float *points, uint32_t nPoints, uint32_t nDim, int nCores) {
     threads.clear();
     */
     constructorHelper(this->points,points,0,nPoints,nDim);
-    buildTreeParallel(&(this->root), 0, nPoints, 0, nCores-1);
+    int n = std::thread::hardware_concurrency();
+    this->threadPool = std::min(nCores-1,n-1);
+    buildTreeParallel(&(this->root), 0, nPoints, 0);
 }
 
 KDTree::~KDTree(void) {
@@ -258,7 +260,7 @@ KDTree::buildTree(uint32_t startIndex, uint32_t endIndex, uint32_t currd) {
 }
 
 void
-KDTree::buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd, int nCores) {
+KDTree::buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd) {
     if(endIndex - startIndex < CELLSIZE) {
         *node = new KDNode(startIndex, endIndex);
         return;
@@ -266,15 +268,16 @@ KDTree::buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex,
     float pivotValue;
     uint32_t pivotIndex = partition(startIndex, endIndex, currd, &pivotValue);
     KDNode *newNode = new KDNode(pivotValue);
-    if(nCores > 0) {
-        int nCoresRight = nCores/2;
-        int nCoresLeft = nCores - nCoresRight;
-        std::thread t(&KDTree::buildTreeParallel, this, &(newNode->left), startIndex, pivotIndex, (currd+1)%this->nDim, nCoresLeft-1);
-        buildTreeParallel(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim, nCoresRight);
+    int numAvail = (this->threadPool)--;
+    if(numAvail > 0) {
+        std::thread t(&KDTree::buildTreeParallel, this, &(newNode->left), startIndex, pivotIndex, (currd+1)%this->nDim);
+        buildTreeParallel(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim);
         t.join();
+        (this->threadPool)++;
     } else {
-        newNode->left = buildTree(startIndex, pivotIndex, (currd+1)%this->nDim);
-        newNode->right = buildTree(pivotIndex, endIndex, (currd+1)%this->nDim);
+        (this->threadPool)++;
+        buildTreeParallel(&(newNode->left), startIndex, pivotIndex, (currd+1)%this->nDim);
+        buildTreeParallel(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim);
     }
     *node = newNode;
 }

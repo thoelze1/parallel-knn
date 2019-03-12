@@ -5,10 +5,11 @@
 #ifndef _KDTREE_H_
 #define _KDTREE_H_
 
+#include <queue>
+#include <atomic>
 #include <cstdint>
 
 #include "KDNode.h"
-#include <queue>
 
 struct pair {
     float distance;
@@ -31,6 +32,7 @@ private:
     KDNode *root;
     float *points;
     uint32_t nPoints, nDim;
+    std::atomic<int> threadPool;
     float distanceToPoint(float *point1, float *point2);
     void queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out);
     void getNN(KDNode *node,
@@ -40,7 +42,7 @@ private:
     void printVisitor(KDNode *node, int currD);
     float getPivot(uint32_t startIndex, uint32_t endIndex, uint32_t currd);
     uint32_t partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float *pivotVal);
-    void buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd, int nCores);
+    void buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd);
     KDNode *buildTree(uint32_t startIndex, uint32_t endIndex, uint32_t currd);
     void destroyNode(KDNode* node);
 };

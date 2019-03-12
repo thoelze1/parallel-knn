@@ -87,6 +87,17 @@ KDTree::print(void) {
     printVisitor(root, 0);
 }
 
+/*
+float
+KDTree::distanceToBox(float *point, float *box) {
+    double distance = 0;
+    for(int d = 0; d < this->nDim; d++) {
+        if(point
+    }
+    return distance;
+}
+*/
+
 float
 KDTree::distanceToPoint(float *point1, float *point2) {
     double distance = 0;
@@ -159,7 +170,6 @@ KDTree::queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
 
 void
 KDTree::query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores) {
-    /*
     std::vector<std::thread> threads;
     if(nCores >= nQueries) {
         int i;
@@ -174,22 +184,22 @@ KDTree::query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCo
         }
         threads.clear();
     } else {
-        uint64_t startIndex = 0;
-        uint64_t subsetSize = nPoints/nCores;
-        for(int i = 0; i < nCores-1; i++) {
-            float *subset = &queries[startIndex*this->nDim];
-            threads.emplace_back(&KDTree::queryHelper,this,subset,subsetSize,k,&out[startIndex*k*this->nDim]);
-            startIndex += subsetSize;
+        int i;
+        int subsetSize = nQueries/nCores;
+        for(i = 0; i < nCores-1; i += subsetSize) {
+            float *subset = &queries[i*this->nDim];
+            threads.emplace_back(&KDTree::queryHelper,this,subset,subsetSize,k,&out[i*k*this->nDim]);
         }
-        float *subset = &queries[startIndex*this->nDim];
-        queryHelper(subset, nQueries-startIndex, k, &out[startIndex*k*this->nDim]);
+        float *subset = &queries[i*this->nDim];
+        queryHelper(subset, nQueries-i, k, &out[i*k*this->nDim]);
         for(std::thread &t : threads) {
             t.join();
         }
         threads.clear();
     }
-    */
+    /*
     queryHelper(queries, nQueries, k, out);
+    */
 }
 
 // change to use SAMPLESIZE
@@ -287,24 +297,3 @@ KDTree::train(int nCores) {
     this->threadPool = std::min(nCores-1,n-1);
     buildTreeParallel(&(this->root), 0, nPoints, 0);
 }
-
-/*
-bool
-prunable(float *point, float *box, float threshold) {
-    float *closestCorner = new float[this->nDim];
-    double distance = 0, delta;
-    for(int d = 0; d < this->nDim; d++) {
-        if(abs(point[i] - box[2*d+1]) < abs(point[i] - box[2*d+2])) {
-            closestCorner[d] = box[2*d+1];
-        } else {
-            closestCorner[d] = box[2*d+2];
-        }
-        delta = (double)(closestCorner[d]) - point[d];
-        distance += delta*delta;
-        if(sqrt(distance) > threshold) {
-            return true;
-        }
-    }
-    return false;
-}
-*/

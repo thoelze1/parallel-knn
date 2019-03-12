@@ -1,31 +1,37 @@
 # Parallel k-NN
 
 ## Expectations
-- Linear speedup of queries up to 8 cores
-- Some speedup on tree building (not as much as on queries)
-
-## To Do
-1. Implement single-threaded k-d tree construction and querying according to pseudocode
-2. Implement multithreaded training
-3. Implement multithreaded multiple queries
-4. Implement multithreaded single query
-5. Play around with parameters to improve timing
-
-## Parallelization
-- Build disjoint training subtrees in parallel
-- Compute different queries at the same time
-- Make one query faster by searching disjoint subtrees in parallel
-
-## Parameters to tune
-- Number of points per leaf cell (per hypercube)
-- Number of points to sample for median
-- Number of threads per core
-- Number of children per node in k-d tree (ternary tree? quaternary?)
+- Linear speedup of queries
+- ~Linear speedup of training up to 4 cores
 
 ## Assumptions
 - Number of dimensions is a positive integer
+- Training file and query file are well formed files that match in dimension
+- Requested k is not less than total number of training points
+
+## To Do
+- Implement this bad boy in rust
+- Implement multithreaded single query
+- Play around with parameters to improve timing
+- Change main file to use struct initialization (packed structs or whatever)
+- Pass Vector to recursive query calls instead of "priority queue"
+- Implement advanced pruning and compare with simple pruning
+- KDNode as subclass of KDTree
+- struct instead of union
+- uint32_t instead of uint64_t where possible
+- add helper to buildTree that doesn't track parameters
+- add training function to KDTree (for easier timing in main - right now constructor copies over points too, which takes some time)
+- Test whether NaN comparison is better than bool field
+- Add parallelization for single queries
+- Tune parameters:
+    - Number of points per leaf cell (per hypercube)
+    - Number of points to sample for median
+    - Number of children per node in k-d tree (ternary tree? quaternary?)
 
 ## Notes
+- PROT_PRIVATE (lots of page faults)
+- Copy all floats (sequential is fast)
+- Indices of all floats (n/d indices as opposed to n floats)
 - Edge case: more dimensions than points?
 - Edge case: num points < k?
 - Special case code for n = 1? Queries could be O(k)...
@@ -33,6 +39,15 @@
 - Root of tree should also have bounding hypercube and pointer to points
 - If tree is less-than-balanced, one thread working on training will finish before another, and should help unfinished threads continue training
 - Join all training threads before starting querying
+- File I/O Speed
+    - Options: in place in mmap; copy to new array; sort array of offsets; copy to vector
+    - mmap with private flag: 12-13 seconds for 1,000,000 pts
+    - copy array of floats to new array of floats: 11-12 seconds for 1,000,000 pts
+- Parallelization
+    - Copy from mmap in parallel
+    - Build disjoint training subtrees in parallel
+    - Compute different queries at the same time
+    - Make one query faster by searching disjoint subtrees in parallel
 
 ## Tree Construction with Random Sampling and Smart Querying
 - Training runtime: nlog(n)

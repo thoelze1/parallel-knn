@@ -186,6 +186,9 @@ KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out, int nCo
         }
         threads.clear();
     }
+    /*
+    queryHelper(queries, nQueries, k, out);
+    */
 }
 
 // change to use SAMPLESIZE

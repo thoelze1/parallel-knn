@@ -10,14 +10,14 @@
 #include "KDNode.h"
 #include <queue>
 
-union pair {
-    float d;
-    uint64_t i;
+struct pair {
+    float distance;
+    uint32_t index;
 };
 
 struct CompareDistance {
-    bool operator()(const union pair &lhs, const union pair &rhs) {
-        return lhs.d < rhs.d;
+    bool operator()(const struct pair &lhs, const struct pair &rhs) {
+        return lhs.distance < rhs.distance;
     }
 };
 
@@ -34,7 +34,7 @@ private:
     float distanceToPoint(float *point1, float *point2);
     void queryHelper(float *queries, uint64_t nQueries, uint64_t k, float *out);
     void getNN(KDNode *node,
-               std::priority_queue<union pair, std::vector<union pair>, CompareDistance> &nn,
+               std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
                float *queryPoint,
                int currD);
     void printVisitor(KDNode *node, int currD);

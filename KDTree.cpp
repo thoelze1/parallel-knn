@@ -98,7 +98,7 @@ KDTree::distanceToPoint(float *point1, float *point2) {
 
 void
 KDTree::getNN(KDNode *node,
-              std::priority_queue<union pair, std::vector<union pair>, CompareDistance> &nn,
+              std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
               float *queryPoint,
               int currD) {
     // Base Case
@@ -106,11 +106,11 @@ KDTree::getNN(KDNode *node,
         for(uint64_t i = (uint64_t)node->left; i < (uint64_t)node->right; i++) {
             float *neighbor = &(this->points[i*this->nDim]);
             float d = this->distanceToPoint(queryPoint, neighbor);
-            if(d < nn.top().d) {
+            if(d < nn.top().distance) {
                 nn.pop();
-                union pair newPair;
-                newPair.i = i << 32;
-                newPair.d = d;
+                struct pair newPair;
+                newPair.index = (uint32_t)i;
+                newPair.distance = d;
                 nn.push(newPair);
                 //std::cout << neighbor[0] << "," << neighbor[1] << "\t" << d << std::endl;
             }
@@ -130,7 +130,7 @@ KDTree::getNN(KDNode *node,
     getNN(first, nn, queryPoint, (currD+1)%this->nDim);
     //std::cout << currD << std::endl;
     // Search worse subtree if necessary
-    if(nn.top().d > std::abs(queryPoint[currD] - node->val.median)) {
+    if(nn.top().distance > std::abs(queryPoint[currD] - node->val.median)) {
         getNN(second, nn, queryPoint, (currD+1)%this->nDim);
     }
 }
@@ -139,16 +139,16 @@ KDTree::getNN(KDNode *node,
 void
 KDTree::queryHelper(float *queries, uint64_t nQueries, uint64_t k, float *out) {
     for(uint64_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
-        std::priority_queue<union pair, std::vector<union pair>, CompareDistance> nn;
+        std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> nn;
         for(int i = 0; i < k; i++) {
-            union pair newPair;
-            newPair.d = std::numeric_limits<float>::max();
+            struct pair newPair;
+            newPair.distance = std::numeric_limits<float>::max();
             nn.push(newPair);
         }
         getNN(this->root, nn, &queries[queryIndex*this->nDim], 0);
         for(int i = 0; i < k; i++) {
             float *dest = &out[queryIndex*k*this->nDim + i*this->nDim];
-            uint32_t pointsIndex = nn.top().i >> 32;
+            uint32_t pointsIndex = nn.top().index;
             memcpy(dest, &this->points[pointsIndex*this->nDim], this->nDim*sizeof(float));
             //std::cout << nn.top().d << std::endl;
             nn.pop();

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <assert.h>
 #include <sys/resource.h>
-#include <ctime>
+#include <chrono>
 
 extern "C" {
 #include "io.h"
@@ -49,22 +49,20 @@ main(int argc, char **argv) {
 
     KDTree tree((float *)(tHeader+1), tHeader->nPoints, tHeader->nDims);
 
-    struct timespec start, finish;
-    double elapsed;
+    std::chrono::high_resolution_clock::time_point start, end;
+    std::chrono::duration<double> time;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    start = std::chrono::high_resolution_clock::now();
     tree.train(numCores);
-    clock_gettime(CLOCK_MONOTONIC, &finish);
-    elapsed = (finish.tv_sec - start.tv_sec);
-    elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-    std::cout << elapsed << std::endl;
+    end = std::chrono::high_resolution_clock::now();
+    time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    std::cout << time.count() << std::endl;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    start = std::chrono::high_resolution_clock::now();
     tree.query((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
-    clock_gettime(CLOCK_MONOTONIC, &finish);
-    elapsed = (finish.tv_sec - start.tv_sec);
-    elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-    std::cout << elapsed << std::endl;
+    end = std::chrono::high_resolution_clock::now();
+    time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    std::cout << time.count() << std::endl;
 
     rv = closeFile((char *)tHeader, trainingFd, trainingFileSize);
     rv = closeFile((char *)qHeader, queryFd, queryFileSize);

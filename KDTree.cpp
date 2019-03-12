@@ -54,7 +54,7 @@ KDTree::~KDTree(void) {
 
 void
 KDTree::destroyNode(KDNode *node) {
-    if(node->isLeaf) {
+    if(node->val.isLeaf == LEAF_VAL) {
         delete node;
     } else {
         destroyNode(node->left);
@@ -65,7 +65,7 @@ KDTree::destroyNode(KDNode *node) {
 
 void
 KDTree::printVisitor(KDNode *node, int currD) {
-    if(node->isLeaf) {
+    if(node->val.isLeaf == LEAF_VAL) {
         std::cout << std::setw(currD * 10) << "Leaf" << std::endl;
         for(uint64_t i = (uint64_t)node->left; i < (uint64_t)node->right; i++) {
             std::cout << std::setw(currD * 10 + 10) << "Point: ";
@@ -76,7 +76,7 @@ KDTree::printVisitor(KDNode *node, int currD) {
         }
         return;
     }
-    std::cout << std::setw(currD * 10) << "Dim: " << currD << " Med: " << node->median << std::endl;
+    std::cout << std::setw(currD * 10) << "Dim: " << currD << " Med: " << node->val.median << std::endl;
     printVisitor(node->left, currD + 1);
     printVisitor(node->right, currD + 1);
 }
@@ -102,7 +102,7 @@ KDTree::getNN(KDNode *node,
               float *queryPoint,
               int currD) {
     // Base Case
-    if(node->isLeaf) {
+    if(node->val.isLeaf == LEAF_VAL) {
         for(uint64_t i = (uint64_t)node->left; i < (uint64_t)node->right; i++) {
             float *neighbor = &(this->points[i*this->nDim]);
             float d = this->distanceToPoint(queryPoint, neighbor);
@@ -119,7 +119,7 @@ KDTree::getNN(KDNode *node,
     }
     // Determine better subtree
     KDNode *first, *second;
-    if(queryPoint[currD] < node->median) {
+    if(queryPoint[currD] < node->val.median) {
          first = node->left;
          second = node->right;
     } else {
@@ -130,7 +130,7 @@ KDTree::getNN(KDNode *node,
     getNN(first, nn, queryPoint, (currD+1)%this->nDim);
     //std::cout << currD << std::endl;
     // Search worse subtree if necessary
-    if(nn.top().d > std::abs(queryPoint[currD] - node->median)) {
+    if(nn.top().d > std::abs(queryPoint[currD] - node->val.median)) {
         getNN(second, nn, queryPoint, (currD+1)%this->nDim);
     }
 }
@@ -158,6 +158,7 @@ KDTree::queryHelper(float *queries, uint64_t nQueries, uint64_t k, float *out) {
 
 void
 KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out, int nCores) {
+    /*
     std::vector<std::thread> threads;
     if(nCores >= nQueries) {
         int i;
@@ -186,9 +187,8 @@ KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out, int nCo
         }
         threads.clear();
     }
-    /*
-    queryHelper(queries, nQueries, k, out);
     */
+    queryHelper(queries, nQueries, k, out);
 }
 
 // change to use SAMPLESIZE

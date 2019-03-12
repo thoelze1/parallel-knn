@@ -4,13 +4,12 @@
 
 #include "KDNode.h"
 
-KDNode::KDNode(float med) {
-    this->median = med;
-    this->isLeaf = false;
+KDNode::KDNode(float median) {
+    this->val.median = median;
 }
 
 KDNode::KDNode(uint64_t start, uint64_t end) {
     this->left = (KDNode *)start;
     this->right = (KDNode *)end;
-    this->isLeaf = true;
+    this->val.isLeaf = LEAF_VAL;
 }

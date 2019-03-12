@@ -24,8 +24,9 @@ struct CompareDistance {
 
 class KDTree {
 public:
-    KDTree(float *points, uint32_t nPoints, uint32_t nDim, int nCores);
+    KDTree(float *points, uint32_t nPoints, uint32_t nDim);
     ~KDTree();
+    void train(int nCores);
     void query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores);
     void print(void);
 private:

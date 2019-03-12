@@ -13,8 +13,10 @@
 #include <thread>
 #include <future>
 
-#define CELLSIZE	5
+#define CELLSIZE	10
 #define SAMPLESIZE	10'000
+
+#define MAX_TRAINING_THREADS	6
 
 #include "KDTree.h"
 #include "KDNode.h"
@@ -26,7 +28,7 @@ constructorHelper(float *newPoints, float *oldPoints, uint32_t startIndex, uint3
     }
 }
 
-KDTree::KDTree(float *points, uint32_t nPoints, uint32_t nDim, int nCores) {
+KDTree::KDTree(float *points, uint32_t nPoints, uint32_t nDim) {
     this->nDim = nDim;
     this->points = new float[nPoints*nDim];
     this->nPoints = nPoints;
@@ -44,9 +46,6 @@ KDTree::KDTree(float *points, uint32_t nPoints, uint32_t nDim, int nCores) {
     threads.clear();
     */
     constructorHelper(this->points,points,0,nPoints,nDim);
-    int n = std::thread::hardware_concurrency();
-    this->threadPool = std::min(nCores-1,n-1);
-    buildTreeParallel(&(this->root), 0, nPoints, 0);
 }
 
 KDTree::~KDTree(void) {
@@ -280,6 +279,13 @@ KDTree::buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex,
         buildTreeParallel(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim);
     }
     *node = newNode;
+}
+
+void
+KDTree::train(int nCores) {
+    int n = std::thread::hardware_concurrency();
+    this->threadPool = std::min(nCores-1,n-1);
+    buildTreeParallel(&(this->root), 0, nPoints, 0);
 }
 
 /*

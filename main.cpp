@@ -37,7 +37,6 @@ main(int argc, char **argv) {
     int resultFileSize = sizeof(struct resultHeader) + qHeader->nQueries*qHeader->k*qHeader->nDims*sizeof(float);
     struct resultHeader *rHeader = (struct resultHeader *)writeFile(argv[4], &resultFd, resultFileSize);
 
-
     std::string result("RESULT\0\0");
     result.copy((char *)&(rHeader->typeString), result.length());
     rHeader->trainingId = tHeader->id;
@@ -47,7 +46,9 @@ main(int argc, char **argv) {
     rHeader->nDims = qHeader->nDims;
     rHeader->k = qHeader->k;
 
-    KDTree tree((float *)(tHeader+1), tHeader->nPoints, tHeader->nDims, numCores);
+    KDTree tree((float *)(tHeader+1), tHeader->nPoints, tHeader->nDims);
+
+    tree.train(numCores);
     tree.query((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
 
     rv = closeFile((char *)tHeader, trainingFd, trainingFileSize);

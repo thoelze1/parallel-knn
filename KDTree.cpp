@@ -44,7 +44,7 @@ KDTree::KDTree(float *points, uint32_t nPoints, uint32_t nDim, int nCores) {
     threads.clear();
     */
     constructorHelper(this->points,points,0,nPoints,nDim);
-    buildTree(&(this->root), 0, nPoints, 0, nCores-1);
+    buildTreeParallel(&(this->root), 0, nPoints, 0, nCores-1);
 }
 
 KDTree::~KDTree(void) {
@@ -244,8 +244,21 @@ KDTree::partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float 
     return first;
 }
 
+KDNode *
+KDTree::buildTree(uint32_t startIndex, uint32_t endIndex, uint32_t currd) {
+    if(endIndex - startIndex < CELLSIZE) {
+        return new KDNode(startIndex, endIndex);
+    }
+    float pivotValue;
+    uint32_t pivotIndex = partition(startIndex, endIndex, currd, &pivotValue);
+    KDNode *node = new KDNode(pivotValue);
+    node->left = buildTree(startIndex, pivotIndex, (currd+1)%this->nDim);
+    node->right = buildTree(pivotIndex, endIndex, (currd+1)%this->nDim);
+    return node;
+}
+
 void
-KDTree::buildTree(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd, int nCores) {
+KDTree::buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd, int nCores) {
     if(endIndex - startIndex < CELLSIZE) {
         *node = new KDNode(startIndex, endIndex);
         return;
@@ -256,12 +269,12 @@ KDTree::buildTree(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_
     if(nCores > 0) {
         int nCoresRight = nCores/2;
         int nCoresLeft = nCores - nCoresRight;
-        std::thread t(&KDTree::buildTree, this, &(newNode->left), startIndex, pivotIndex, (currd+1)%this->nDim, nCoresLeft-1);
-        buildTree(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim, nCoresRight);
+        std::thread t(&KDTree::buildTreeParallel, this, &(newNode->left), startIndex, pivotIndex, (currd+1)%this->nDim, nCoresLeft-1);
+        buildTreeParallel(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim, nCoresRight);
         t.join();
     } else {
-        buildTree(&(newNode->left), startIndex, pivotIndex, (currd+1)%this->nDim, 0);
-        buildTree(&(newNode->right), pivotIndex, endIndex, (currd+1)%this->nDim, 0);
+        newNode->left = buildTree(startIndex, pivotIndex, (currd+1)%this->nDim);
+        newNode->right = buildTree(pivotIndex, endIndex, (currd+1)%this->nDim);
     }
     *node = newNode;
 }

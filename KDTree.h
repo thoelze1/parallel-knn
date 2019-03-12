@@ -40,7 +40,8 @@ private:
     void printVisitor(KDNode *node, int currD);
     float getPivot(uint32_t startIndex, uint32_t endIndex, uint32_t currd);
     uint32_t partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float *pivotVal);
-    void buildTree(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd, int nCores);
+    void buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd, int nCores);
+    KDNode *buildTree(uint32_t startIndex, uint32_t endIndex, uint32_t currd);
     void destroyNode(KDNode* node);
 };
 

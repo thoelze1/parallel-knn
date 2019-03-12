@@ -137,7 +137,7 @@ KDTree::getNN(KDNode *node,
 
 // use vector instead to use reserve
 void
-KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out) {
+KDTree::queryHelper(float *queries, uint64_t nQueries, uint64_t k, float *out) {
     for(uint64_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
         std::priority_queue<union pair, std::vector<union pair>, CompareDistance> nn;
         for(int i = 0; i < k; i++) {
@@ -153,6 +153,38 @@ KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out) {
             //std::cout << nn.top().d << std::endl;
             nn.pop();
         }
+    }
+}
+
+void
+KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out, int nCores) {
+    std::vector<std::thread> threads;
+    if(nCores >= nQueries) {
+        int i;
+        for(i = 0; i < nQueries-1; i++) {
+            float *subset = &queries[i*this->nDim];
+            threads.emplace_back(&KDTree::queryHelper,this,subset,1,k,&out[i*k*this->nDim]);
+        }
+        float *subset = &queries[i*this->nDim];
+        queryHelper(subset, 1, k, &out[i*k*this->nDim]);
+        for(std::thread &t : threads) {
+            t.join();
+        }
+        threads.clear();
+    } else {
+        uint64_t startIndex = 0;
+        uint64_t subsetSize = nPoints/nCores;
+        for(int i = 0; i < nCores-1; i++) {
+            float *subset = &queries[startIndex*this->nDim];
+            threads.emplace_back(&KDTree::queryHelper,this,subset,subsetSize,k,&out[startIndex*k*this->nDim]);
+            startIndex += subsetSize;
+        }
+        float *subset = &queries[startIndex*this->nDim];
+        queryHelper(subset, nQueries-startIndex, k, &out[startIndex*k*this->nDim]);
+        for(std::thread &t : threads) {
+            t.join();
+        }
+        threads.clear();
     }
 }
 

@@ -25,13 +25,14 @@ class KDTree {
 public:
     KDTree(float *points, uint64_t nPoints, uint64_t nDim, int nCores);
     ~KDTree();
-    void query(float *queries, uint64_t nQueries, uint64_t k, float *out);
+    void query(float *queries, uint64_t nQueries, uint64_t k, float *out, int nCores);
     void print(void);
 private:
     KDNode *root;
     float *points;
     uint64_t nPoints, nDim;
     float distanceToPoint(float *point1, float *point2);
+    void queryHelper(float *queries, uint64_t nQueries, uint64_t k, float *out);
     void getNN(KDNode *node,
                std::priority_queue<union pair, std::vector<union pair>, CompareDistance> &nn,
                float *queryPoint,

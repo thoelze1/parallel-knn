@@ -45,7 +45,7 @@ main(int argc, char **argv) {
     *(uint64_t *)(resultsData+48) = k;
 
     KDTree tree(points, nPoints, nDim, numCores);
-    tree.query(queries, nQueries, k, (float *)(resultsData+56));
+    tree.query(queries, nQueries, k, (float *)(resultsData+56), numCores);
 
     rv = closeFile(trainingData, trainingFd, trainingFileSize);
     rv = closeFile(queryData, queryFd, queryFileSize);

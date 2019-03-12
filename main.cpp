@@ -5,6 +5,7 @@
 #include <iostream>
 #include <assert.h>
 #include <sys/resource.h>
+#include <ctime>
 
 extern "C" {
 #include "io.h"
@@ -48,8 +49,22 @@ main(int argc, char **argv) {
 
     KDTree tree((float *)(tHeader+1), tHeader->nPoints, tHeader->nDims);
 
+    struct timespec start, finish;
+    double elapsed;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
     tree.train(numCores);
+    clock_gettime(CLOCK_MONOTONIC, &finish);
+    elapsed = (finish.tv_sec - start.tv_sec);
+    elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+    std::cout << elapsed << std::endl;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
     tree.query((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
+    clock_gettime(CLOCK_MONOTONIC, &finish);
+    elapsed = (finish.tv_sec - start.tv_sec);
+    elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+    std::cout << elapsed << std::endl;
 
     rv = closeFile((char *)tHeader, trainingFd, trainingFileSize);
     rv = closeFile((char *)qHeader, queryFd, queryFileSize);

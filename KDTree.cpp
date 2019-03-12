@@ -20,13 +20,13 @@
 #include "KDNode.h"
 
 void
-constructorHelper(float *newPoints, float *oldPoints, uint64_t startIndex, uint64_t endIndex, uint64_t nDim) {
+constructorHelper(float *newPoints, float *oldPoints, uint32_t startIndex, uint32_t endIndex, uint32_t nDim) {
     for(int i = startIndex*nDim; i < endIndex*nDim; i++) {
         newPoints[i] = oldPoints[i];
     }
 }
 
-KDTree::KDTree(float *points, uint64_t nPoints, uint64_t nDim, int nCores) {
+KDTree::KDTree(float *points, uint32_t nPoints, uint32_t nDim, int nCores) {
     this->nDim = nDim;
     this->points = new float[nPoints*nDim];
     this->nPoints = nPoints;
@@ -67,7 +67,7 @@ void
 KDTree::printVisitor(KDNode *node, int currD) {
     if(node->val.isLeaf == LEAF_VAL) {
         std::cout << std::setw(currD * 10) << "Leaf" << std::endl;
-        for(uint64_t i = (uint64_t)node->left; i < (uint64_t)node->right; i++) {
+        for(uint32_t i = (uint32_t)((uint64_t)node->left); i < (uint32_t)((uint64_t)node->right); i++) {
             std::cout << std::setw(currD * 10 + 10) << "Point: ";
             for(int d = 0; d < nDim; d++) {
                 std::cout << std::setw(10) << this->points[i*nDim+d] << "," ;
@@ -103,7 +103,7 @@ KDTree::getNN(KDNode *node,
               int currD) {
     // Base Case
     if(node->val.isLeaf == LEAF_VAL) {
-        for(uint64_t i = (uint64_t)node->left; i < (uint64_t)node->right; i++) {
+        for(uint32_t i = (uint32_t)((uint64_t)node->left); i < (uint32_t)((uint64_t)node->right); i++) {
             float *neighbor = &(this->points[i*this->nDim]);
             float d = this->distanceToPoint(queryPoint, neighbor);
             if(d < nn.top().distance) {
@@ -137,8 +137,8 @@ KDTree::getNN(KDNode *node,
 
 // use vector instead to use reserve
 void
-KDTree::queryHelper(float *queries, uint64_t nQueries, uint64_t k, float *out) {
-    for(uint64_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
+KDTree::queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
+    for(uint32_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
         std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> nn;
         for(int i = 0; i < k; i++) {
             struct pair newPair;
@@ -157,7 +157,7 @@ KDTree::queryHelper(float *queries, uint64_t nQueries, uint64_t k, float *out) {
 }
 
 void
-KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out, int nCores) {
+KDTree::query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores) {
     /*
     std::vector<std::thread> threads;
     if(nCores >= nQueries) {
@@ -193,13 +193,13 @@ KDTree::query(float *queries, uint64_t nQueries, uint64_t k, float *out, int nCo
 
 // change to use SAMPLESIZE
 float
-KDTree::getPivot(uint64_t startIndex, uint64_t endIndex, uint64_t currd) {
-    uint64_t numPoints = endIndex - startIndex;
+KDTree::getPivot(uint32_t startIndex, uint32_t endIndex, uint32_t currd) {
+    uint32_t numPoints = endIndex - startIndex;
     std::vector<float> sample(SAMPLESIZE);
     std::default_random_engine eng;
     std::uniform_int_distribution<int> dist(0, numPoints);
-    for(unsigned int i = 0; i < SAMPLESIZE; i++) {
-        int randomIndex = dist(eng);
+    for(uint32_t i = 0; i < SAMPLESIZE; i++) {
+        uint32_t randomIndex = dist(eng);
         sample[i] = this->points[(startIndex+randomIndex)*this->nDim+currd];
     }
     std::nth_element(sample.begin(), sample.begin() + SAMPLESIZE/2, sample.end());
@@ -207,14 +207,14 @@ KDTree::getPivot(uint64_t startIndex, uint64_t endIndex, uint64_t currd) {
 }
 
 /* see http://www.cplusplus.com/reference/algorithm/partition/ */
-uint64_t
-KDTree::partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd, float *retPivotVal) {
+uint32_t
+KDTree::partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float *retPivotVal) {
     int first, last;
     float pivotVal;
-    uint64_t numPoints = endIndex - startIndex;
+    uint32_t numPoints = endIndex - startIndex;
     if(numPoints < SAMPLESIZE) {
         std::vector<float> pointsVec(numPoints);
-        for(unsigned int i = 0; i < numPoints; i++) {
+        for(uint32_t i = 0; i < numPoints; i++) {
             pointsVec[i] = this->points[(startIndex+i)*this->nDim+currd];
         }
         std::nth_element(pointsVec.begin(), pointsVec.begin() + numPoints/2, pointsVec.end());
@@ -245,13 +245,13 @@ KDTree::partition(uint64_t startIndex, uint64_t endIndex, uint64_t currd, float 
 }
 
 void
-KDTree::buildTree(KDNode **node, uint64_t startIndex, uint64_t endIndex, uint64_t currd, int nCores) {
+KDTree::buildTree(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd, int nCores) {
     if(endIndex - startIndex < CELLSIZE) {
         *node = new KDNode(startIndex, endIndex);
         return;
     }
     float pivotValue;
-    uint64_t pivotIndex = partition(startIndex, endIndex, currd, &pivotValue);
+    uint32_t pivotIndex = partition(startIndex, endIndex, currd, &pivotValue);
     KDNode *newNode = new KDNode(pivotValue);
     if(nCores > 0) {
         int nCoresRight = nCores/2;

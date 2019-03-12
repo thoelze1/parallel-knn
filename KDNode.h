@@ -18,7 +18,7 @@ class KDNode {
 public:
     KDNode(){}
     KDNode(float median);
-    KDNode(uint64_t start, uint64_t end);
+    KDNode(uint32_t start, uint32_t end);
     union nodeVal val;
     KDNode *left;
     KDNode *right;

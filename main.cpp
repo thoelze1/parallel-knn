@@ -56,13 +56,13 @@ main(int argc, char **argv) {
     tree.train(numCores);
     end = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    //std::cout << time.count() << std::endl;
+    std::cout << "Training time in seconds: " << time.count() << std::endl;
 
     start2 = std::chrono::high_resolution_clock::now();
     tree.query((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
     end2 = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - start2);
-    //std::cout << time.count() << std::endl;
+    std::cout << "Query time in seconds: " << time.count() << std::endl;
 
     rv = closeFile((char *)tHeader, trainingFd, trainingFileSize);
     rv = closeFile((char *)qHeader, queryFd, queryFileSize);

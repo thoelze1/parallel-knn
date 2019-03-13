@@ -48,9 +48,9 @@ KDTree::KDTree(float *points, uint32_t nPoints, uint32_t nDim) {
     constructorHelper(this->points,points,0,nPoints,nDim);
 }
 
-KDTree::~KDTree(void) {
-    delete [] this->points;
+KDTree::~KDTree() {
     destroyNode(this->root);
+    delete [] this->points;
 }
 
 void
@@ -87,22 +87,26 @@ KDTree::print(void) {
     printVisitor(root, 0);
 }
 
-/*
 float
 KDTree::distanceToBox(float *point, float *box) {
-    double distance = 0;
+    double distance = 0, delta;
     for(int d = 0; d < this->nDim; d++) {
-        if(point
+        if(point[d] < box[2*d+0]) {
+            delta = (double)(point[d]) - box[2*d+0];
+            distance += delta * delta;
+        } else if(point[d] > box[2*d+1]) {
+            delta = (double)(point[d]) - box[2*d+1];
+            distance += delta * delta;
+        }
     }
-    return distance;
+    return (float)sqrt(distance);
 }
-*/
 
 float
 KDTree::distanceToPoint(float *point1, float *point2) {
-    double distance = 0;
+    double distance = 0, delta;
     for(int i = 0; i < this->nDim; i++) {
-        double delta = (double)(point1[i]) - point2[i];
+        delta = (double)(point1[i]) - point2[i];
         distance += delta * delta;
     }
     return (float)sqrt(distance);
@@ -202,6 +206,108 @@ KDTree::query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCo
     */
 }
 
+void
+KDTree::getNNPruning(KDNode *node,
+                     std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
+                     float *queryPoint,
+                     int currD,
+                     float *box,
+                     bool inBox)
+{
+    // Base Case
+    if(node->val.isLeaf == LEAF_VAL) {
+        for(uint32_t i = (uint32_t)((uint64_t)node->left); i < (uint32_t)((uint64_t)node->right); i++) {
+            float *neighbor = &(this->points[i*this->nDim]);
+            float d = this->distanceToPoint(queryPoint, neighbor);
+            if(d < nn.top().distance) {
+                nn.pop();
+                struct pair newPair;
+                newPair.index = (uint32_t)i;
+                newPair.distance = d;
+                nn.push(newPair);
+                //std::cout << neighbor[0] << "," << neighbor[1] << "\t" << d << std::endl;
+            }
+        }
+        return;
+    }
+    // Construct new boxes
+    float *leftBox = new float[2*this->nDim];
+    float *rightBox = new float[2*this->nDim];
+    for(int i = 0; i < 2*this->nDim; i++) {
+        leftBox[i] = box[i];
+        rightBox[i] = box[i];
+    }
+    leftBox[2*currD+1] = node->val.median;
+    rightBox[2*currD+0] = node->val.median;
+    float dLeft = distanceToBox(queryPoint, leftBox);
+    float dRight = distanceToBox(queryPoint, rightBox);
+    if(inBox) {
+        // Search better subtree
+        if(queryPoint[currD] < node->val.median) {
+            getNNPruning(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, true);
+        } else {
+            getNNPruning(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, true);
+        }
+        // Search worse subtree if necessary
+        if(nn.top().distance > std::abs(queryPoint[currD] - node->val.median)) {
+            if(queryPoint[currD] < node->val.median) {
+                getNNPruning(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
+            } else {
+                getNNPruning(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
+            }
+        }
+    } else {
+        if(dLeft < dRight) {
+            if(nn.top().distance > dLeft) {
+                getNNPruning(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
+            }
+            if(nn.top().distance > dRight) {
+                getNNPruning(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
+            }
+        } else {
+            if(nn.top().distance > dRight) {
+                getNNPruning(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
+            }
+            if(nn.top().distance > dLeft) {
+                getNNPruning(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
+            }
+        }
+    }
+    delete [] leftBox;
+    delete [] rightBox;
+}
+
+void
+KDTree::queryPruningHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
+    for(uint32_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
+        std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> nn;
+        for(int i = 0; i < k; i++) {
+            struct pair newPair;
+            newPair.distance = std::numeric_limits<float>::max();
+            nn.push(newPair);
+        }
+        float *box = new float[2*this->nDim];
+        for(int i = 0; i < this->nDim; i++) {
+            box[2*i+0] = -1*std::numeric_limits<float>::max();
+            box[2*i+1] = std::numeric_limits<float>::max();
+        }
+        getNNPruning(this->root, nn, &queries[queryIndex*this->nDim], 0, box, true);
+        for(int i = 0; i < k; i++) {
+            float *dest = &out[queryIndex*k*this->nDim + i*this->nDim];
+            uint32_t pointsIndex = nn.top().index;
+            memcpy(dest, &this->points[pointsIndex*this->nDim], this->nDim*sizeof(float));
+            //std::cout << nn.top().d << std::endl;
+            nn.pop();
+        }
+        delete [] box;
+    }
+}
+
+void
+KDTree::queryPruning(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores) {
+    queryPruningHelper(queries, nQueries, k, out);
+}
+
 // change to use SAMPLESIZE
 float
 KDTree::getPivot(uint32_t startIndex, uint32_t endIndex, uint32_t currd) {
@@ -246,6 +352,13 @@ KDTree::partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float 
         --last;
         if (first == last) return first;
       } while (this->points[last*this->nDim+currd] >= pivotVal);
+      /*
+      for(int i = 0; i < this->nDim*sizeof(float); i++) {
+        tempPoint[i] = this->points[first*this->nDim+i];
+        this->points[first*this->nDim+i] = this->points[last*this->nDim+i];
+        this->points[last*this->nDim+i] = tempPoint[i];
+      }
+      */
       memcpy(tempPoint, &this->points[first*this->nDim], this->nDim*sizeof(float));
       memcpy(&this->points[first*this->nDim], &points[last*this->nDim], this->nDim*sizeof(float));
       memcpy(&this->points[last*this->nDim], tempPoint, this->nDim*sizeof(float));

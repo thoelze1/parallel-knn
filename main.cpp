@@ -49,7 +49,7 @@ main(int argc, char **argv) {
 
     KDTree tree((float *)(tHeader+1), tHeader->nPoints, tHeader->nDims);
 
-    std::chrono::high_resolution_clock::time_point start, end;
+    std::chrono::high_resolution_clock::time_point start, end, start2, end2;
     std::chrono::duration<double> time;
 
     start = std::chrono::high_resolution_clock::now();
@@ -58,10 +58,10 @@ main(int argc, char **argv) {
     time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     std::cout << time.count() << std::endl;
 
-    start = std::chrono::high_resolution_clock::now();
-    tree.query((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
-    end = std::chrono::high_resolution_clock::now();
-    time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    start2 = std::chrono::high_resolution_clock::now();
+    tree.queryPruning((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
+    end2 = std::chrono::high_resolution_clock::now();
+    time = std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - start2);
     std::cout << time.count() << std::endl;
 
     rv = closeFile((char *)tHeader, trainingFd, trainingFileSize);

@@ -1,9 +1,9 @@
 GPROFFLAGS=-pg -g -no-pie
 
-all: knn
+all: k-nn
 
-knn: main.o io.o KDNode.o KDTree.o
-	g++ -O3 main.o io.o KDNode.o KDTree.o -o knn -pthread
+k-nn: main.o io.o KDNode.o KDTree.o
+	g++ -O3 main.o io.o KDNode.o KDTree.o -o k-nn -pthread
 
 main.o: main.cpp io.h KDNode.h
 	g++ -O3 -c main.cpp
@@ -18,4 +18,4 @@ KDTree.o: KDTree.cpp KDTree.h
 	g++ -O3 -c KDTree.cpp
 
 clean:
-	rm *.o knn
+	rm -f *.o k-nn

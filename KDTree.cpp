@@ -381,16 +381,16 @@ KDTree::partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float 
         --last;
         if (first == last) return first;
       } while (this->points[last*this->nDim+currd] >= pivotVal);
-      /*
-      for(int i = 0; i < this->nDim*sizeof(float); i++) {
+      for(int i = 0; i < this->nDim; i++) {
         tempPoint[i] = this->points[first*this->nDim+i];
         this->points[first*this->nDim+i] = this->points[last*this->nDim+i];
         this->points[last*this->nDim+i] = tempPoint[i];
       }
-      */
+      /*
       memcpy(tempPoint, &this->points[first*this->nDim], this->nDim*sizeof(float));
       memcpy(&this->points[first*this->nDim], &points[last*this->nDim], this->nDim*sizeof(float));
       memcpy(&this->points[last*this->nDim], tempPoint, this->nDim*sizeof(float));
+      */
       ++first;
     }
     delete [] tempPoint;

@@ -4,14 +4,11 @@
 
 #include <iomanip>
 #include <iostream>
-#include <string.h>
 #include <random>
 #include <vector>
 #include <algorithm>
 #include <limits>
-#include <cmath>
 #include <thread>
-#include <future>
 
 #define CELLSIZE	10
 #define SAMPLESIZE	10'000
@@ -118,7 +115,6 @@ KDTree::getNN(KDNode *node,
                 newPair.index = (uint32_t)i;
                 newPair.distance = d;
                 nn.push(newPair);
-                //std::cout << neighbor[0] << "," << neighbor[1] << "\t" << d << std::endl;
             }
         }
         return;

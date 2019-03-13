@@ -188,8 +188,9 @@ KDTree::queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
         for(int i = 0; i < k; i++) {
             float *dest = &out[queryIndex*k*this->nDim + i*this->nDim];
             uint32_t pointsIndex = nn.top().index;
-            memcpy(dest, &this->points[pointsIndex*this->nDim], this->nDim*sizeof(float));
-            //std::cout << nn.top().d << std::endl;
+            for(int i = 0; i < this->nDim; i++) {
+                dest[i] = this->points[pointsIndex*this->nDim+i];
+            }
             nn.pop();
         }
         delete [] box;
@@ -306,6 +307,6 @@ KDTree::buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex,
 void
 KDTree::train(int nCores) {
     int n = std::thread::hardware_concurrency();
-    this->threadPool = std::min(nCores-1,n-1);
+    this->threadPool = std::min(MAX_TRAINING_THREADS,std::min(nCores-1,n-1));
     buildTreeParallel(&(this->root), 0, nPoints, 0);
 }

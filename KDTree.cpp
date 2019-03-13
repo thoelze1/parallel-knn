@@ -258,7 +258,7 @@ KDTree::partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float 
         pivotVal = getPivot(startIndex, endIndex, currd);
     }
     *retPivotVal = pivotVal;
-    float *tempPoint = new float[this->nDim];
+    float tempPoint;
     first = startIndex;
     last = endIndex;
     while (first != last) {
@@ -271,32 +271,13 @@ KDTree::partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float 
         if (first == last) return first;
       } while (this->points[last*this->nDim+currd] >= pivotVal);
       for(int i = 0; i < this->nDim; i++) {
-        tempPoint[i] = this->points[first*this->nDim+i];
+        tempPoint = this->points[first*this->nDim+i];
         this->points[first*this->nDim+i] = this->points[last*this->nDim+i];
-        this->points[last*this->nDim+i] = tempPoint[i];
+        this->points[last*this->nDim+i] = tempPoint;
       }
-      /*
-      memcpy(tempPoint, &this->points[first*this->nDim], this->nDim*sizeof(float));
-      memcpy(&this->points[first*this->nDim], &points[last*this->nDim], this->nDim*sizeof(float));
-      memcpy(&this->points[last*this->nDim], tempPoint, this->nDim*sizeof(float));
-      */
       ++first;
     }
-    delete [] tempPoint;
     return first;
-}
-
-KDNode *
-KDTree::buildTree(uint32_t startIndex, uint32_t endIndex, uint32_t currd) {
-    if(endIndex - startIndex < CELLSIZE) {
-        return new KDNode(startIndex, endIndex);
-    }
-    float pivotValue;
-    uint32_t pivotIndex = partition(startIndex, endIndex, currd, &pivotValue);
-    KDNode *node = new KDNode(pivotValue);
-    node->left = buildTree(startIndex, pivotIndex, (currd+1)%this->nDim);
-    node->right = buildTree(pivotIndex, endIndex, (currd+1)%this->nDim);
-    return node;
 }
 
 void

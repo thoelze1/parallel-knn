@@ -51,7 +51,6 @@ private:
     float getPivot(uint32_t startIndex, uint32_t endIndex, uint32_t currd);
     uint32_t partition(uint32_t startIndex, uint32_t endIndex, uint32_t currd, float *pivotVal);
     void buildTreeParallel(KDNode **node, uint32_t startIndex, uint32_t endIndex, uint32_t currd);
-    KDNode *buildTree(uint32_t startIndex, uint32_t endIndex, uint32_t currd);
     /* Destructor */
     void destroyNode(KDNode* node);
 };

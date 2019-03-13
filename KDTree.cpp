@@ -305,7 +305,36 @@ KDTree::queryPruningHelper(float *queries, uint32_t nQueries, uint32_t k, float 
 
 void
 KDTree::queryPruning(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores) {
+    std::vector<std::thread> threads;
+    if(nCores >= nQueries) {
+        int i;
+        for(i = 0; i < nQueries-1; i++) {
+            float *subset = &queries[i*this->nDim];
+            threads.emplace_back(&KDTree::queryPruningHelper,this,subset,1,k,&out[i*k*this->nDim]);
+        }
+        float *subset = &queries[i*this->nDim];
+        queryPruningHelper(subset, 1, k, &out[i*k*this->nDim]);
+        for(std::thread &t : threads) {
+            t.join();
+        }
+        threads.clear();
+    } else {
+        int i;
+        int subsetSize = nQueries/nCores;
+        for(i = 0; i < nCores-1; i += subsetSize) {
+            float *subset = &queries[i*this->nDim];
+            threads.emplace_back(&KDTree::queryPruningHelper,this,subset,subsetSize,k,&out[i*k*this->nDim]);
+        }
+        float *subset = &queries[i*this->nDim];
+        queryPruningHelper(subset, nQueries-i, k, &out[i*k*this->nDim]);
+        for(std::thread &t : threads) {
+            t.join();
+        }
+        threads.clear();
+    }
+    /*
     queryPruningHelper(queries, nQueries, k, out);
+    */
 }
 
 // change to use SAMPLESIZE

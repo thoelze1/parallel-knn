@@ -28,7 +28,6 @@ public:
     ~KDTree();
     void train(int nCores);
     void query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores);
-    void queryPruning(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores);
     void print(void);
 private:
     /* Vars */
@@ -37,16 +36,10 @@ private:
     uint32_t nPoints, nDim;
     std::atomic<int> threadPool;
     /* Querying */
+    float distanceToBox(float *point, float *box);
     float distanceToPoint(float *point1, float *point2);
     void queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out);
     void getNN(KDNode *node,
-               std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
-               float *queryPoint,
-               int currD);
-    /* Querying with pruning*/
-    float distanceToBox(float *point, float *box);
-    void queryPruningHelper(float *queries, uint32_t nQueries, uint32_t k, float *out);
-    void getNNPruning(KDNode *node,
                std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
                float *queryPoint,
                int currD,

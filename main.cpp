@@ -59,7 +59,7 @@ main(int argc, char **argv) {
     std::cout << time.count() << std::endl;
 
     start2 = std::chrono::high_resolution_clock::now();
-    tree.queryPruning((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
+    tree.query((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
     end2 = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - start2);
     std::cout << time.count() << std::endl;

@@ -32,19 +32,6 @@ KDTree::KDTree(float *points, uint32_t nPoints, uint32_t nDim) {
     this->nDim = nDim;
     this->points = new float[nPoints*nDim];
     this->nPoints = nPoints;
-    /*
-    std::vector<std::thread> threads;
-    uint64_t startIndex = 0;
-    for(int i = 0; i < nCores-1; i++) {
-        threads.emplace_back(constructorHelper,this->points,points,startIndex,startIndex+(nPoints/nCores),nDim);
-        startIndex += nPoints/nCores;
-    }
-    constructorHelper(this->points, points, startIndex, nPoints, nDim);
-    for(std::thread &t : threads) {
-        t.join();
-    }
-    threads.clear();
-    */
     constructorHelper(this->points,points,0,nPoints,nDim);
 }
 
@@ -116,7 +103,10 @@ void
 KDTree::getNN(KDNode *node,
               std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
               float *queryPoint,
-              int currD) {
+              int currD,
+              float *box,
+              bool inBox)
+{
     // Base Case
     if(node->val.isLeaf == LEAF_VAL) {
         for(uint32_t i = (uint32_t)((uint64_t)node->left); i < (uint32_t)((uint64_t)node->right); i++) {
@@ -133,25 +123,53 @@ KDTree::getNN(KDNode *node,
         }
         return;
     }
-    // Determine better subtree
-    KDNode *first, *second;
-    if(queryPoint[currD] < node->val.median) {
-         first = node->left;
-         second = node->right;
+    // Construct new boxes
+    float *leftBox = new float[2*this->nDim];
+    float *rightBox = new float[2*this->nDim];
+    for(int i = 0; i < 2*this->nDim; i++) {
+        leftBox[i] = box[i];
+        rightBox[i] = box[i];
+    }
+    leftBox[2*currD+1] = node->val.median;
+    rightBox[2*currD+0] = node->val.median;
+    float dLeft = distanceToBox(queryPoint, leftBox);
+    float dRight = distanceToBox(queryPoint, rightBox);
+    if(inBox) {
+        // Search better subtree
+        if(queryPoint[currD] < node->val.median) {
+            getNN(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, true);
+        } else {
+            getNN(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, true);
+        }
+        // Search worse subtree if necessary
+        if(nn.top().distance > std::abs(queryPoint[currD] - node->val.median)) {
+            if(queryPoint[currD] < node->val.median) {
+                getNN(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
+            } else {
+                getNN(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
+            }
+        }
     } else {
-         first = node->right;
-         second = node->left;
+        if(dLeft < dRight) {
+            if(nn.top().distance > dLeft) {
+                getNN(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
+            }
+            if(nn.top().distance > dRight) {
+                getNN(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
+            }
+        } else {
+            if(nn.top().distance > dRight) {
+                getNN(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
+            }
+            if(nn.top().distance > dLeft) {
+                getNN(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
+            }
+        }
     }
-    // Search better subtree
-    getNN(first, nn, queryPoint, (currD+1)%this->nDim);
-    //std::cout << currD << std::endl;
-    // Search worse subtree if necessary
-    if(nn.top().distance > std::abs(queryPoint[currD] - node->val.median)) {
-        getNN(second, nn, queryPoint, (currD+1)%this->nDim);
-    }
+    delete [] leftBox;
+    delete [] rightBox;
 }
 
-// use vector instead to use reserve
 void
 KDTree::queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
     for(uint32_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
@@ -161,7 +179,12 @@ KDTree::queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
             newPair.distance = std::numeric_limits<float>::max();
             nn.push(newPair);
         }
-        getNN(this->root, nn, &queries[queryIndex*this->nDim], 0);
+        float *box = new float[2*this->nDim];
+        for(int i = 0; i < this->nDim; i++) {
+            box[2*i+0] = -1*std::numeric_limits<float>::max();
+            box[2*i+1] = std::numeric_limits<float>::max();
+        }
+        getNN(this->root, nn, &queries[queryIndex*this->nDim], 0, box, true);
         for(int i = 0; i < k; i++) {
             float *dest = &out[queryIndex*k*this->nDim + i*this->nDim];
             uint32_t pointsIndex = nn.top().index;
@@ -169,6 +192,7 @@ KDTree::queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
             //std::cout << nn.top().d << std::endl;
             nn.pop();
         }
+        delete [] box;
     }
 }
 
@@ -201,143 +225,8 @@ KDTree::query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCo
         }
         threads.clear();
     }
-    /*
-    queryHelper(queries, nQueries, k, out);
-    */
 }
 
-void
-KDTree::getNNPruning(KDNode *node,
-                     std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
-                     float *queryPoint,
-                     int currD,
-                     float *box,
-                     bool inBox)
-{
-    // Base Case
-    if(node->val.isLeaf == LEAF_VAL) {
-        for(uint32_t i = (uint32_t)((uint64_t)node->left); i < (uint32_t)((uint64_t)node->right); i++) {
-            float *neighbor = &(this->points[i*this->nDim]);
-            float d = this->distanceToPoint(queryPoint, neighbor);
-            if(d < nn.top().distance) {
-                nn.pop();
-                struct pair newPair;
-                newPair.index = (uint32_t)i;
-                newPair.distance = d;
-                nn.push(newPair);
-                //std::cout << neighbor[0] << "," << neighbor[1] << "\t" << d << std::endl;
-            }
-        }
-        return;
-    }
-    // Construct new boxes
-    float *leftBox = new float[2*this->nDim];
-    float *rightBox = new float[2*this->nDim];
-    for(int i = 0; i < 2*this->nDim; i++) {
-        leftBox[i] = box[i];
-        rightBox[i] = box[i];
-    }
-    leftBox[2*currD+1] = node->val.median;
-    rightBox[2*currD+0] = node->val.median;
-    float dLeft = distanceToBox(queryPoint, leftBox);
-    float dRight = distanceToBox(queryPoint, rightBox);
-    if(inBox) {
-        // Search better subtree
-        if(queryPoint[currD] < node->val.median) {
-            getNNPruning(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, true);
-        } else {
-            getNNPruning(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, true);
-        }
-        // Search worse subtree if necessary
-        if(nn.top().distance > std::abs(queryPoint[currD] - node->val.median)) {
-            if(queryPoint[currD] < node->val.median) {
-                getNNPruning(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
-            } else {
-                getNNPruning(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
-            }
-        }
-    } else {
-        if(dLeft < dRight) {
-            if(nn.top().distance > dLeft) {
-                getNNPruning(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
-            }
-            if(nn.top().distance > dRight) {
-                getNNPruning(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
-            }
-        } else {
-            if(nn.top().distance > dRight) {
-                getNNPruning(node->right, nn, queryPoint, (currD+1)%this->nDim, rightBox, false);
-            }
-            if(nn.top().distance > dLeft) {
-                getNNPruning(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
-            }
-        }
-    }
-    delete [] leftBox;
-    delete [] rightBox;
-}
-
-void
-KDTree::queryPruningHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
-    for(uint32_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
-        std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> nn;
-        for(int i = 0; i < k; i++) {
-            struct pair newPair;
-            newPair.distance = std::numeric_limits<float>::max();
-            nn.push(newPair);
-        }
-        float *box = new float[2*this->nDim];
-        for(int i = 0; i < this->nDim; i++) {
-            box[2*i+0] = -1*std::numeric_limits<float>::max();
-            box[2*i+1] = std::numeric_limits<float>::max();
-        }
-        getNNPruning(this->root, nn, &queries[queryIndex*this->nDim], 0, box, true);
-        for(int i = 0; i < k; i++) {
-            float *dest = &out[queryIndex*k*this->nDim + i*this->nDim];
-            uint32_t pointsIndex = nn.top().index;
-            memcpy(dest, &this->points[pointsIndex*this->nDim], this->nDim*sizeof(float));
-            //std::cout << nn.top().d << std::endl;
-            nn.pop();
-        }
-        delete [] box;
-    }
-}
-
-void
-KDTree::queryPruning(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores) {
-    std::vector<std::thread> threads;
-    if(nCores >= nQueries) {
-        int i;
-        for(i = 0; i < nQueries-1; i++) {
-            float *subset = &queries[i*this->nDim];
-            threads.emplace_back(&KDTree::queryPruningHelper,this,subset,1,k,&out[i*k*this->nDim]);
-        }
-        float *subset = &queries[i*this->nDim];
-        queryPruningHelper(subset, 1, k, &out[i*k*this->nDim]);
-        for(std::thread &t : threads) {
-            t.join();
-        }
-        threads.clear();
-    } else {
-        int i;
-        int subsetSize = nQueries/nCores;
-        for(i = 0; i < nCores-1; i += subsetSize) {
-            float *subset = &queries[i*this->nDim];
-            threads.emplace_back(&KDTree::queryPruningHelper,this,subset,subsetSize,k,&out[i*k*this->nDim]);
-        }
-        float *subset = &queries[i*this->nDim];
-        queryPruningHelper(subset, nQueries-i, k, &out[i*k*this->nDim]);
-        for(std::thread &t : threads) {
-            t.join();
-        }
-        threads.clear();
-    }
-    /*
-    queryPruningHelper(queries, nQueries, k, out);
-    */
-}
-
-// change to use SAMPLESIZE
 float
 KDTree::getPivot(uint32_t startIndex, uint32_t endIndex, uint32_t currd) {
     uint32_t numPoints = endIndex - startIndex;

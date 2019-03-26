@@ -6,6 +6,7 @@
 - Requested k is not less than total number of training points
 
 ## To Do
+- Store points based on Ryan's idea
 - Improve testing suite with test-truth.sh and test-time.sh
 - Pass Vector to recursive query calls instead of "priority queue"
 - KDNode as subclass of KDTree

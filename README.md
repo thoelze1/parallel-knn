@@ -17,6 +17,10 @@
 - Implement this bad boy in rust
 - Implement multithreaded single query
 - Implement special case code for n = 1 (Queries could be O(k)...)
+- CAS instead of always using atomic_decrement
+- Better threading for querying where finished chunks help out the slower chunks
+- Pre-allocate space for nodes like was done in BST code
+- Better threading for training where threads work more from left to right to make memory access faster
 
 ## Expectations
 - Linear speedup of queries

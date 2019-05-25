@@ -83,6 +83,7 @@ KDTree::distanceToBox(float *point, float *box) {
             distance += delta * delta;
         }
     }
+    //return (float)distance;
     return (float)sqrt(distance);
 }
 
@@ -93,7 +94,101 @@ KDTree::distanceToPoint(float *point1, float *point2) {
         delta = (double)(point1[i]) - point2[i];
         distance += delta * delta;
     }
+    //return (float)distance;
     return (float)sqrt(distance);
+}
+
+void
+KDTree::getNNSlow(KDNode *node,
+              std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
+              float *queryPoint,
+              int currD) {
+    // Base Case
+    if(node->val.isLeaf == LEAF_VAL) {
+        for(uint32_t i = (uint32_t)((uint64_t)node->left); i < (uint32_t)((uint64_t)node->right); i++) {
+            float *neighbor = &(this->points[i*this->nDim]);
+            float d = this->distanceToPoint(queryPoint, neighbor);
+            if(d < nn.top().distance) {
+                nn.pop();
+                struct pair newPair;
+                newPair.index = (uint32_t)i;
+                newPair.distance = d;
+                nn.push(newPair);
+            }
+        }
+        return;
+    }
+    // Determine better subtree
+    KDNode *first, *second;
+    if(queryPoint[currD] < node->val.median) {
+         first = node->left;
+         second = node->right;
+    } else {
+         first = node->right;
+         second = node->left;
+    }
+    // Search better subtree
+    getNNSlow(first, nn, queryPoint, (currD+1)%this->nDim);
+    // Search worse subtree if necessary
+    if(nn.top().distance > std::abs(queryPoint[currD] - node->val.median)) {
+        getNNSlow(second, nn, queryPoint, (currD+1)%this->nDim);
+    }
+}
+
+// use vector instead to use reserve
+void
+KDTree::queryHelperSlow(float *queries, uint32_t nQueries, uint32_t k, float *out) {
+    for(uint32_t queryIndex = 0; queryIndex < nQueries; queryIndex++) {
+        std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> nn;
+        for(int i = 0; i < k; i++) {
+            struct pair newPair;
+            newPair.distance = std::numeric_limits<float>::max();
+            nn.push(newPair);
+        }
+        getNNSlow(this->root, nn, &queries[queryIndex*this->nDim], 0);
+        for(int i = 0; i < k; i++) {
+            float *dest = &out[queryIndex*k*this->nDim + i*this->nDim];
+            uint32_t pointsIndex = nn.top().index;
+            for(int i = 0; i < this->nDim; i++) {
+                dest[i] = this->points[pointsIndex*this->nDim+i];
+            }
+            nn.pop();
+        }
+    }
+}
+
+void
+KDTree::querySlow(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores) {
+    /*
+    std::vector<std::thread> threads;
+    if(nCores >= nQueries) {
+        int i;
+        for(i = 0; i < nQueries-1; i++) {
+            float *subset = &queries[i*this->nDim];
+            threads.emplace_back(&KDTree::queryHelper,this,subset,1,k,&out[i*k*this->nDim]);
+        }
+        float *subset = &queries[i*this->nDim];
+        queryHelper(subset, 1, k, &out[i*k*this->nDim]);
+        for(std::thread &t : threads) {
+            t.join();
+        }
+        threads.clear();
+    } else {
+        int i;
+        int subsetSize = nQueries/nCores;
+        for(i = 0; i < nCores-1; i += subsetSize) {
+            float *subset = &queries[i*this->nDim];
+            threads.emplace_back(&KDTree::queryHelper,this,subset,subsetSize,k,&out[i*k*this->nDim]);
+        }
+        float *subset = &queries[i*this->nDim];
+        queryHelper(subset, nQueries-i, k, &out[i*k*this->nDim]);
+        for(std::thread &t : threads) {
+            t.join();
+        }
+        threads.clear();
+    }
+    */
+    queryHelperSlow(queries, nQueries, k, out);
 }
 
 void
@@ -128,8 +223,6 @@ KDTree::getNN(KDNode *node,
     }
     leftBox[2*currD+1] = node->val.median;
     rightBox[2*currD+0] = node->val.median;
-    float dLeft = distanceToBox(queryPoint, leftBox);
-    float dRight = distanceToBox(queryPoint, rightBox);
     if(inBox) {
         // Search better subtree
         if(queryPoint[currD] < node->val.median) {
@@ -146,6 +239,8 @@ KDTree::getNN(KDNode *node,
             }
         }
     } else {
+        float dLeft = distanceToBox(queryPoint, leftBox);
+        float dRight = distanceToBox(queryPoint, rightBox);
         if(dLeft < dRight) {
             if(nn.top().distance > dLeft) {
                 getNN(node->left, nn, queryPoint, (currD+1)%this->nDim, leftBox, false);
@@ -195,6 +290,7 @@ KDTree::queryHelper(float *queries, uint32_t nQueries, uint32_t k, float *out) {
 
 void
 KDTree::query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores) {
+    /*
     std::vector<std::thread> threads;
     if(nCores >= nQueries) {
         int i;
@@ -222,6 +318,8 @@ KDTree::query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCo
         }
         threads.clear();
     }
+    */
+    queryHelper(queries, nQueries, k, out);
 }
 
 float

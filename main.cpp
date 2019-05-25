@@ -49,20 +49,26 @@ main(int argc, char **argv) {
 
     KDTree tree((float *)(tHeader+1), tHeader->nPoints, tHeader->nDims);
 
-    std::chrono::high_resolution_clock::time_point start, end, start2, end2;
+    std::chrono::high_resolution_clock::time_point start, end, start2, end2, start3, end3;
     std::chrono::duration<double> time;
 
     start = std::chrono::high_resolution_clock::now();
     tree.train(numCores);
     end = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    std::cout << "Training time in seconds: " << time.count() << std::endl;
+    std::cout << "Training time in seconds:\t" << time.count() << std::endl;
 
     start2 = std::chrono::high_resolution_clock::now();
     tree.query((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
     end2 = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - start2);
-    std::cout << "Query time in seconds: " << time.count() << std::endl;
+    std::cout << "Advanced querying in seconds:\t" << time.count() << std::endl;
+
+    start3 = std::chrono::high_resolution_clock::now();
+    tree.querySlow((float *)(qHeader+1), qHeader->nQueries, qHeader->k, (float *)(rHeader+1), numCores);
+    end3 = std::chrono::high_resolution_clock::now();
+    time = std::chrono::duration_cast<std::chrono::nanoseconds>(end3 - start3);
+    std::cout << "Simple querying in seconds:\t" << time.count() << std::endl;
 
     rv = closeFile((char *)tHeader, trainingFd, trainingFileSize);
     rv = closeFile((char *)qHeader, queryFd, queryFileSize);

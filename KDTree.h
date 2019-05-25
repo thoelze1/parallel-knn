@@ -28,6 +28,7 @@ public:
     ~KDTree();
     void train(int nCores);
     void query(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores);
+    void querySlow(float *queries, uint32_t nQueries, uint32_t k, float *out, int nCores);
     void print(void);
 private:
     /* Vars */
@@ -45,6 +46,12 @@ private:
                int currD,
                float *box,
                bool inBox);
+    /* Old querying (for comparison) */
+    void queryHelperSlow(float *queries, uint32_t nQueries, uint32_t k, float *out);
+    void getNNSlow(KDNode *node,
+                   std::priority_queue<struct pair, std::vector<struct pair>, CompareDistance> &nn,
+                   float *queryPoint,
+                   int currD);
     /* Printing */
     void printVisitor(KDNode *node, int currD);
     /* Training */
